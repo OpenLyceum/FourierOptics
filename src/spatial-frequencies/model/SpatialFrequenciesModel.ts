@@ -1,58 +1,116 @@
-/**
- * SpatialFrequenciesModel.ts
- *
- * The top-level model for the simulation screen.
- *
- * Add your simulation's state here using reactive Property objects from
- * scenerystack/axon. The view observes these properties and updates automatically.
- *
- * ── Example ──────────────────────────────────────────────────────────────────
- *   import { BooleanProperty, NumberProperty } from "scenerystack/axon";
- *
- *   public readonly isRunningProperty = new BooleanProperty(false);
- *   public readonly timeProperty = new NumberProperty(0);    // seconds
- *
- * ── Step cycle ────────────────────────────────────────────────────────────────
- * The Sim calls step(dt) on every animation frame. Advance your model state
- * in that method (e.g. integrate equations, update positions).
- *
- * ── Reset ─────────────────────────────────────────────────────────────────────
- * reset() is called when the user presses Reset All. Call .reset() on every
- * Property declared here.
- */
+import { BooleanProperty, Emitter, Multilink, NumberProperty } from "scenerystack/axon";
+import { clamp, Range, Vector2 } from "scenerystack/dot";
 import type { TModel } from "scenerystack/joist";
-import { SharedModel } from "../../common/model/SharedModel.js";
+import { createFourierEngine } from "../../common/fourier/createFourierEngine.js";
+import { rasterizeAperture } from "../../common/model/apertures.js";
+import { ComplexField } from "../../common/model/ComplexField.js";
+import { spatialFrequencyStep } from "../../common/model/opticalSystem.js";
+import { EXPOSURE_DB, GRATING_PARAMETERS, OPTICAL_PARAMETERS } from "../../FourierOpticsConstants.js";
+
+const PARAMETERS = GRATING_PARAMETERS;
+const RADIANS_PER_DEGREE = Math.PI / 180;
+const rangeFor = ({ min, max }: { min: number; max: number }) => new Range(min, max);
+
+class Grating {
+  public readonly enabledProperty: BooleanProperty;
+  public readonly periodProperty: NumberProperty;
+  public readonly angleProperty: NumberProperty;
+  public readonly contrastProperty: NumberProperty;
+  public readonly phaseProperty = new NumberProperty(0, { range: rangeFor(PARAMETERS.angle) });
+  public readonly inputs;
+
+  public constructor(defaults: (typeof PARAMETERS.defaults)[number], enabled: boolean) {
+    this.enabledProperty = new BooleanProperty(enabled);
+    this.periodProperty = new NumberProperty(defaults.period, { range: rangeFor(PARAMETERS.period) });
+    this.angleProperty = new NumberProperty(defaults.angle, { range: rangeFor(PARAMETERS.angle) });
+    this.contrastProperty = new NumberProperty(defaults.contrast, { range: rangeFor(PARAMETERS.contrast) });
+    this.inputs = [
+      this.enabledProperty,
+      this.periodProperty,
+      this.angleProperty,
+      this.contrastProperty,
+      this.phaseProperty,
+    ] as const;
+  }
+
+  public getSpec() {
+    return {
+      period: this.periodProperty.value,
+      angle: this.angleProperty.value * RADIANS_PER_DEGREE,
+      contrast: this.contrastProperty.value,
+      phase: this.phaseProperty.value * RADIANS_PER_DEGREE,
+    };
+  }
+}
 
 export class SpatialFrequenciesModel implements TModel {
-  /** Shared helpers — rename SharedModel to a domain type when known. */
-  public readonly shared = new SharedModel();
+  public readonly size = OPTICAL_PARAMETERS.gridSize.default;
+  public readonly frequencyStep = spatialFrequencyStep(this.size, 1);
+  public readonly gratings = PARAMETERS.defaults.map((defaults, index) => new Grating(defaults, index === 0));
+  public readonly barsProperty = new BooleanProperty(false);
+  public readonly selectedGratingProperty = new NumberProperty(0, {
+    numberType: "Integer",
+    range: new Range(0, this.gratings.length - 1),
+  });
+  public readonly exposureProperty = new NumberProperty(EXPOSURE_DB.default, { range: rangeFor(EXPOSURE_DB) });
+  public readonly inputsChangedEmitter = new Emitter();
+  public readonly object = new ComplexField(this.size);
+  public readonly spectrum = new ComplexField(this.size);
+  public readonly harmonics = Array.from({ length: PARAMETERS.displayedHarmonics }, (_, index) => {
+    const order = index + 1;
+    return { order, amplitude: order % 2 === 0 ? 0 : 1 / order };
+  });
 
-  /**
-   * Resets all model state to initial values.
-   * Called when the user presses the Reset All button.
-   */
+  private readonly engine = createFourierEngine(this.size);
+  private readonly fieldInputs = [this.barsProperty, ...this.gratings.flatMap((grating) => grating.inputs)];
+  private readonly inputLink = Multilink.lazyMultilinkAny(this.fieldInputs, () => this.inputsChangedEmitter.emit());
+
+  /** Frequency coordinates are cycles per object sample. Positive y points down. */
+  public getFrequency(grating: Grating): Vector2 {
+    const { period, angle } = grating.getSpec();
+    return Vector2.createPolar(1 / period, angle);
+  }
+
+  public setFrequency(grating: Grating, frequency: Vector2): void {
+    const magnitude = frequency.magnitude;
+    grating.periodProperty.value = clamp(1 / magnitude, PARAMETERS.period.min, PARAMETERS.period.max);
+    if (magnitude > 0) {
+      grating.angleProperty.value = clamp(
+        frequency.angle / RADIANS_PER_DEGREE,
+        PARAMETERS.angle.min,
+        PARAMETERS.angle.max,
+      );
+    }
+  }
+
+  public recompute(): void {
+    rasterizeAperture(
+      this.barsProperty.value
+        ? { kind: "grating", period: PARAMETERS.barPeriod, angle: 0 }
+        : {
+            kind: "sinusoids",
+            bias: PARAMETERS.bias,
+            gratings: this.gratings
+              .filter((grating) => grating.enabledProperty.value)
+              .map((grating) => grating.getSpec()),
+          },
+      this.object,
+    );
+    this.engine.forward(this.object, this.spectrum);
+  }
+
   public reset(): void {
-    this.shared.reset();
-    // TODO: call .reset() on every Property declared in this model
+    for (const property of [...this.fieldInputs, this.selectedGratingProperty, this.exposureProperty]) {
+      property.reset();
+    }
   }
 
-  /**
-   * Steps the model forward by dt seconds.
-   * Called every animation frame by the Sim framework.
-   *
-   * @param _dt - elapsed time in seconds since the last frame
-   */
-  public step(_dt: number): void {
-    // For play/pause, speed, and elapsed time, compose TimeModel instead of hand-rolling
-    // a clock: copy src/common/TimeModel.ts (and tests/TimeModel.test.ts) from
-    // SceneryStackTemplate unchanged — Baton's drift check requires an exact match —
-    // then hold one in a readonly `timer` field, step/reset/dispose it, and list it
-    // in tests/memory-leak.test.ts.
-    // TODO: advance simulation state here
-  }
-
-  /** Release owned Properties / composed models. */
   public dispose(): void {
-    // No resources yet.
+    this.inputLink.dispose();
+    for (const property of [...this.fieldInputs, this.selectedGratingProperty, this.exposureProperty]) {
+      property.dispose();
+    }
+    this.inputsChangedEmitter.dispose();
+    this.engine.dispose();
   }
 }

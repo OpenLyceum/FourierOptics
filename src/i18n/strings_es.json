@@ -1,27 +1,32 @@
 {
-  "title": "Fourier Optics",
+  "title": "Óptica de Fourier",
   "screens": {
-    "spatialFrequencies": "Spatial Frequencies",
-    "fourierTransform": "Fourier Transform",
-    "spatialFiltering": "Spatial Filtering",
+    "spatialFrequencies": "Frecuencias espaciales",
+    "fourierTransform": "Transformada de Fourier",
+    "spatialFiltering": "Filtrado espacial",
     "fourFOpticalSystem": "Sistema óptico 4f"
   },
   "a11y": {
     "spatialFrequencies": {
       "screenSummary": {
-        "playArea": "El área de juego muestra el contenido principal de la simulación.",
-        "controlArea": "El área de control tiene un botón Restablecer todo que devuelve la simulación a su estado inicial.",
-        "interactionHint": "Explora la simulación interactuando con sus controles."
+        "playArea": "El objeto está a la izquierda. Su espectro de Fourier centrado y los controles de frecuencia están a la derecha.",
+        "controlArea": "Elige un patrón. Activa hasta tres redes y ajusta la red seleccionada o el rango logarítmico del espectro.",
+        "interactionHint": "Aleja un control de frecuencia del centro para acortar el período de la red."
       },
-      "currentDetails": "La simulación está en su estado inicial."
+      "currentDetails": "Redes activas: {{count}}. {{readouts}} Los ejes del espectro llegan hasta más o menos {{limit}} ciclos por muestra.",
+      "barsDetails": "Las barras de onda cuadrada se repiten cada {{period}} muestras. Las cuatro primeras amplitudes relativas no nulas son 1, un tercio, un quinto y un séptimo.",
+      "handle": "Control de frecuencia de {{readout}}",
+      "handleHelp": "Mueve con las flechas o W, A, S, D. Mantén Mayús para ajustar con más precisión.",
+      "handleHelpHeading": "Mover los controles de frecuencia"
     },
     "fourierTransform": {
       "screenSummary": {
-        "playArea": "El área de juego muestra el contenido principal de la simulación.",
-        "controlArea": "El área de control tiene un botón Restablecer todo que devuelve la simulación a su estado inicial.",
-        "interactionHint": "Explora la simulación interactuando con sus controles."
+        "playArea": "El esquema muestra una onda plana, una abertura, una lente y el plano focal posterior. Debajo se ven la abertura y su patrón de difracción con un perfil central.",
+        "controlArea": "Elige una abertura y sus dimensiones. Ajusta la longitud de onda, la distancia focal y el paso de la cuadrícula, o abre la comparación de intercambio de fase.",
+        "interactionHint": "Prueba a estrechar la abertura para ensanchar el patrón, o intercambia la fase de dos objetos y compara sus reconstrucciones."
       },
-      "currentDetails": "La simulación está en su estado inicial."
+      "currentDetails": "Abertura: {{aperture}}. {{dimensions}} Longitud de onda de {{wavelength}} nanómetros. Distancia focal de {{focalLength}} milímetros. Paso de {{pitch}} micrómetros. La imagen focal abarca {{span}} milímetros.",
+      "swapDetails": "El objeto A es {{a}} y el objeto B es {{b}}. Cada reconstrucción conserva la amplitud de Fourier de un objeto y usa la fase del otro."
     },
     "spatialFiltering": {
       "screenSummary": {
@@ -42,5 +47,75 @@
   },
   "preferences": {
     "title": "Simulación"
+  },
+  "common": {
+    "object": "Objeto",
+    "exposure": "Rango log. (dB)"
+  },
+  "spatial": {
+    "spectrum": "Espectro de Fourier · log |F|",
+    "xAxis": "νₓ (ciclos/muestra)",
+    "yAxis": "νᵧ (ciclos/muestra)",
+    "dc": "Continua",
+    "axesRange": "Ejes hasta ±{{limit}} ciclos/muestra",
+    "gratings": "Redes sinusoidales",
+    "bars": "Barras de onda cuadrada",
+    "preset": "Patrón del objeto",
+    "editing": "Red que se edita",
+    "grating1": "Red 1",
+    "grating2": "Red 2",
+    "grating3": "Red 3",
+    "period": "Período (muestras)",
+    "orientation": "Orientación (°)",
+    "contrast": "Contraste",
+    "phase": "Fase (°)",
+    "readout": "{{name}} · {{period}} muestras ↔ {{frequency}} ciclos/muestra · {{angle}}°",
+    "harmonics": "Espectro de onda cuadrada · amplitudes armónicas relativas",
+    "harmonicOrder": "Orden armónico"
+  },
+  "transform": {
+    "aperture": "Abertura",
+    "focalPlane": "Plano focal posterior",
+    "lens": "Lente",
+    "wave": "Onda plana",
+    "distance": "f = {{value}} mm",
+    "wavelength": "Longitud de onda (nm)",
+    "focalLength": "Distancia focal (mm)",
+    "pitch": "Paso de la cuadrícula (µm)",
+    "log": "Intensidad logarítmica",
+    "phase": "Fase por color",
+    "tint": "Tinte espectral",
+    "swap": "Intercambiar las fases de Fourier",
+    "objectA": "Objeto A",
+    "objectB": "Objeto B",
+    "resultA": "Amplitud A + fase B",
+    "resultB": "Amplitud B + fase A",
+    "swapHint": "Compara cada reconstrucción con el objeto que aportó su fase.",
+    "logPattern": "Intensidad focal · log",
+    "linearPattern": "Intensidad focal · lineal",
+    "phasePattern": "Fase focal · color",
+    "profile": "Corte horizontal central · intensidad relativa",
+    "narrower": "Una abertura más estrecha ensancha el patrón de difracción.",
+    "micrometers": "{{value}} µm",
+    "millimeters": "{{value}} mm"
+  },
+  "apertures": {
+    "slit": "Rendija",
+    "doubleSlit": "Doble rendija",
+    "rectangle": "Rectángulo",
+    "circle": "Círculo",
+    "annulus": "Anillo",
+    "grating": "Red de difracción",
+    "cross": "Cruz",
+    "letterF": "Letra F"
+  },
+  "dimensions": {
+    "width": "Ancho (muestras)",
+    "height": "Alto (muestras)",
+    "separation": "Espacio entre rendijas (muestras)",
+    "radius": "Radio (muestras)",
+    "innerRatio": "Radio interior (% del exterior)",
+    "period": "Período (muestras)",
+    "thickness": "Grosor del trazo (muestras)"
   }
 }

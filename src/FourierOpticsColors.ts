@@ -94,6 +94,30 @@ const FourierOpticsColors = {
     default: "#1a1a1a",
     projector: "#1a1a1a",
   }),
+  plotBackgroundColorProperty: new ProfileColorProperty(FourierOpticsNamespace, "plotBackground", {
+    default: "#10192b",
+    projector: "#edf1f5",
+  }),
+  imageAxisColorProperty: new ProfileColorProperty(FourierOpticsNamespace, "imageAxis", {
+    default: "#68788b",
+    projector: "#68788b",
+  }),
+  imageLabelColorProperty: new ProfileColorProperty(FourierOpticsNamespace, "imageLabel", {
+    default: "#ffffff",
+    projector: "#ffffff",
+  }),
+  firstGratingColorProperty: new ProfileColorProperty(FourierOpticsNamespace, "firstGrating", {
+    default: "#62ddfa",
+    projector: "#49cadc",
+  }),
+  secondGratingColorProperty: new ProfileColorProperty(FourierOpticsNamespace, "secondGrating", {
+    default: "#ffbf6e",
+    projector: "#ffc16e",
+  }),
+  thirdGratingColorProperty: new ProfileColorProperty(FourierOpticsNamespace, "thirdGrating", {
+    default: "#f4a5ed",
+    projector: "#f4a5ed",
+  }),
 };
 
 export default FourierOpticsColors;

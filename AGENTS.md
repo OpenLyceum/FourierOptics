@@ -31,6 +31,6 @@ Fourier Optics (`fourier-optics`) is a SceneryStack simulation scaffolded from S
 
 ## Compliance carve-outs
 
-- `.dependency-cruiser.cjs`: TEMPORARY — the numerical core (`src/common/model/*`, `src/common/fourier/*`) is exempt from the reachability rule until the screens import it; remove `PHASE_ONE_CORE` then. Analytic reference formulas used only by tests live in `tests/helpers/analytic.ts`.
+- **Hardcoded colors (computed colours of light).** `spectralColor.ts` and `FieldImageNode.ts` compute wavelength tints, phase hues, and sample brightness. UI colours use profile properties.
 
 Vitest uses the template's `happy-dom` environment.

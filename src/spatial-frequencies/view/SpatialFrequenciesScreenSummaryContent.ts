@@ -1,41 +1,60 @@
-/**
- * SpatialFrequenciesScreenSummaryContent.ts
- *
- * The accessible screen summary read by screen readers (SceneryStack's
- * Interactive Description). It appears at the top of the parallel DOM and gives
- * a non-visual user a way to orient themselves and to re-read the simulation's
- * current state at any time.
- *
- * A summary has four regions (all optional, but provide at least the first
- * three in every sim for consistency across OpenLyceum):
- *   - playAreaContent       — what the play area contains
- *   - controlAreaContent    — what the controls do
- *   - currentDetailsContent — a LIVE paragraph describing current state
- *   - interactionHintContent — a short hint on how to get started
- *
- * ── Making "current details" live ─────────────────────────────────────────────
- * The template has no model state, so currentDetails is a static string. In a
- * real sim, build a DerivedProperty over the relevant model Properties and pass
- * it as `currentDetailsContent` so the paragraph updates as the sim runs.
- * See LunarLander/src/.../LunarLanderScreenSummaryContent.ts for the pattern.
- * If that DerivedProperty (or any Multilink) is owned by a short-lived object,
- * dispose it on teardown — see the commented dispose() stub in SpatialFrequenciesScreenView.
- */
+import { DerivedProperty, type TReadOnlyProperty } from "scenerystack/axon";
+import { toFixed } from "scenerystack/dot";
+import { StringUtils } from "scenerystack/phetcommon";
 import { ScreenSummaryContent } from "scenerystack/sim";
+import { GRATING_PARAMETERS, OPTICS_LAYOUT as L } from "../../FourierOpticsConstants.js";
 import { StringManager } from "../../i18n/StringManager.js";
 import type { SpatialFrequenciesModel } from "../model/SpatialFrequenciesModel.js";
 
-export class SpatialFrequenciesScreenSummaryContent extends ScreenSummaryContent {
-  // `model` is unused in the template but kept in the signature so real sims can
-  // derive a live currentDetailsContent from it without changing call sites.
-  public constructor(_model: SpatialFrequenciesModel) {
-    const a11y = StringManager.getInstance().getSpatialFrequenciesA11yStrings();
+const manager = StringManager.getInstance();
+const strings = manager.getSpatialStrings();
+const a11y = manager.getSpatialFrequenciesA11yStrings();
 
+export function createGratingReadout(
+  model: SpatialFrequenciesModel,
+  grating: SpatialFrequenciesModel["gratings"][number],
+  nameProperty: TReadOnlyProperty<string>,
+) {
+  return new DerivedProperty(
+    [nameProperty, strings.readoutStringProperty, grating.periodProperty, grating.angleProperty],
+    (name, pattern, period, angle) =>
+      StringUtils.fillIn(pattern, {
+        name,
+        period: toFixed(period, 2),
+        frequency: toFixed(model.getFrequency(grating).magnitude, 3),
+        angle: toFixed(angle, 1),
+      }),
+  );
+}
+
+export class SpatialFrequenciesScreenSummaryContent extends ScreenSummaryContent {
+  public constructor(model: SpatialFrequenciesModel, readouts: readonly TReadOnlyProperty<string>[]) {
+    const detailsProperty = DerivedProperty.deriveAny(
+      [
+        ...readouts,
+        ...model.gratings.map((grating) => grating.enabledProperty),
+        model.barsProperty,
+        a11y.currentDetailsStringProperty,
+        a11y.barsDetailsStringProperty,
+      ],
+      () => {
+        if (model.barsProperty.value) {
+          return StringUtils.fillIn(a11y.barsDetailsStringProperty.value, { period: GRATING_PARAMETERS.barPeriod });
+        }
+        const active = readouts.filter((_, index) => model.gratings[index]?.enabledProperty.value);
+        return StringUtils.fillIn(a11y.currentDetailsStringProperty.value, {
+          count: active.length,
+          readouts: active.map((readout) => `${readout.value}.`).join(" "),
+          limit: toFixed((model.frequencyStep * L.spectrumBins) / 2, 3),
+        });
+      },
+    );
     super({
       playAreaContent: a11y.screenSummary.playAreaStringProperty,
       controlAreaContent: a11y.screenSummary.controlAreaStringProperty,
-      currentDetailsContent: a11y.currentDetailsStringProperty,
+      currentDetailsContent: detailsProperty,
       interactionHintContent: a11y.screenSummary.interactionHintStringProperty,
     });
+    this.disposeEmitter.addListener(() => detailsProperty.dispose());
   }
 }

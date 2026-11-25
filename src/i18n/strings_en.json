@@ -9,19 +9,24 @@
   "a11y": {
     "spatialFrequencies": {
       "screenSummary": {
-        "playArea": "The play area shows the main simulation content.",
-        "controlArea": "The control area has a Reset All button that returns the simulation to its starting state.",
-        "interactionHint": "Explore the simulation by interacting with its controls."
+        "playArea": "The object is on the left. Its centered Fourier spectrum and frequency handles are on the right.",
+        "controlArea": "Choose a pattern. Enable up to three gratings and adjust the selected grating or the spectrum’s log range.",
+        "interactionHint": "Move a frequency handle farther from the center to shorten the grating period."
       },
-      "currentDetails": "The simulation is in its initial state."
+      "currentDetails": "Enabled gratings: {{count}}. {{readouts}} Spectrum axes extend to plus or minus {{limit}} cycles per sample.",
+      "barsDetails": "Square-wave bars repeat every {{period}} samples. The first four nonzero relative amplitudes are 1, one third, one fifth and one seventh.",
+      "handle": "Frequency handle for {{readout}}",
+      "handleHelp": "Move with the arrow keys or W, A, S, D. Hold Shift for finer movement.",
+      "handleHelpHeading": "Move frequency handles"
     },
     "fourierTransform": {
       "screenSummary": {
-        "playArea": "The play area shows the main simulation content.",
-        "controlArea": "The control area has a Reset All button that returns the simulation to its starting state.",
-        "interactionHint": "Explore the simulation by interacting with its controls."
+        "playArea": "The diagram shows a plane wave, aperture, lens, and back focal plane. Below are the aperture and its diffraction pattern with a centerline profile.",
+        "controlArea": "Choose an aperture and its dimensions. Adjust the wavelength, focal length, and grid pitch, or open the phase swap comparison.",
+        "interactionHint": "Try narrowing the opening to spread the pattern, or swap the phase of two objects and compare their reconstructions."
       },
-      "currentDetails": "The simulation is in its initial state."
+      "currentDetails": "Aperture: {{aperture}}. {{dimensions}} Wavelength {{wavelength}} nanometers. Focal length {{focalLength}} millimeters. Grid pitch {{pitch}} micrometers. The focal image spans {{span}} millimeters.",
+      "swapDetails": "Object A is {{a}} and object B is {{b}}. Each reconstruction keeps one object’s Fourier amplitude and uses the other’s phase."
     },
     "spatialFiltering": {
       "screenSummary": {
@@ -42,5 +47,75 @@
   },
   "preferences": {
     "title": "Simulation"
+  },
+  "common": {
+    "object": "Object",
+    "exposure": "Log range (dB)"
+  },
+  "spatial": {
+    "spectrum": "Fourier spectrum · log |F|",
+    "xAxis": "νₓ (cycles/sample)",
+    "yAxis": "νᵧ (cycles/sample)",
+    "dc": "DC",
+    "axesRange": "Axes extend to ±{{limit}} cycles/sample",
+    "gratings": "Sinusoidal gratings",
+    "bars": "Square-wave bars",
+    "preset": "Object pattern",
+    "editing": "Grating to edit",
+    "grating1": "Grating 1",
+    "grating2": "Grating 2",
+    "grating3": "Grating 3",
+    "period": "Period (samples)",
+    "orientation": "Orientation (°)",
+    "contrast": "Contrast",
+    "phase": "Phase (°)",
+    "readout": "{{name}} · {{period}} samples ↔ {{frequency}} cycles/sample · {{angle}}°",
+    "harmonics": "Square-wave spectrum · relative harmonic amplitudes",
+    "harmonicOrder": "Harmonic order"
+  },
+  "transform": {
+    "aperture": "Aperture",
+    "focalPlane": "Back focal plane",
+    "lens": "Lens",
+    "wave": "Plane wave",
+    "distance": "f = {{value}} mm",
+    "wavelength": "Wavelength (nm)",
+    "focalLength": "Focal length (mm)",
+    "pitch": "Grid pitch (µm)",
+    "log": "Log intensity",
+    "phase": "Phase hue",
+    "tint": "Wavelength tint",
+    "swap": "Swap Fourier phase",
+    "objectA": "Object A",
+    "objectB": "Object B",
+    "resultA": "Amplitude A + phase B",
+    "resultB": "Amplitude B + phase A",
+    "swapHint": "Compare each reconstruction with the object that supplied its phase.",
+    "logPattern": "Focal intensity · log",
+    "linearPattern": "Focal intensity · linear",
+    "phasePattern": "Focal phase · hue",
+    "profile": "Horizontal centerline · relative intensity",
+    "narrower": "Narrower openings spread the diffraction pattern.",
+    "micrometers": "{{value}} µm",
+    "millimeters": "{{value}} mm"
+  },
+  "apertures": {
+    "slit": "Slit",
+    "doubleSlit": "Double slit",
+    "rectangle": "Rectangle",
+    "circle": "Circle",
+    "annulus": "Annulus",
+    "grating": "Grating",
+    "cross": "Cross",
+    "letterF": "Letter F"
+  },
+  "dimensions": {
+    "width": "Width (samples)",
+    "height": "Height (samples)",
+    "separation": "Gap between slits (samples)",
+    "radius": "Radius (samples)",
+    "innerRatio": "Inner radius (% of outer)",
+    "period": "Period (samples)",
+    "thickness": "Stroke thickness (samples)"
   }
 }

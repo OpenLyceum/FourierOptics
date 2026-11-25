@@ -1,27 +1,32 @@
 {
-  "title": "Fourier Optics",
+  "title": "Optique de Fourier",
   "screens": {
-    "spatialFrequencies": "Spatial Frequencies",
-    "fourierTransform": "Fourier Transform",
-    "spatialFiltering": "Spatial Filtering",
+    "spatialFrequencies": "Fréquences spatiales",
+    "fourierTransform": "Transformée de Fourier",
+    "spatialFiltering": "Filtrage spatial",
     "fourFOpticalSystem": "Système optique 4f"
   },
   "a11y": {
     "spatialFrequencies": {
       "screenSummary": {
-        "playArea": "La zone de jeu affiche le contenu principal de la simulation.",
-        "controlArea": "La zone de contrôle comporte un bouton Tout réinitialiser qui ramène la simulation à son état initial.",
-        "interactionHint": "Explorez la simulation en interagissant avec ses commandes."
+        "playArea": "L’objet se trouve à gauche. Son spectre de Fourier centré et les poignées sont à droite.",
+        "controlArea": "Choisissez un motif. Activez jusqu’à trois réseaux et réglez le réseau sélectionné ou la plage logarithmique du spectre.",
+        "interactionHint": "Éloignez une poignée de fréquence du centre pour raccourcir la période du réseau."
       },
-      "currentDetails": "La simulation est dans son état initial."
+      "currentDetails": "Réseaux actifs : {{count}}. {{readouts}} Les axes du spectre vont jusqu’à plus ou moins {{limit}} cycles par échantillon.",
+      "barsDetails": "Les bandes en créneau se répètent tous les {{period}} échantillons. Les quatre premières amplitudes relatives non nulles valent 1, un tiers, un cinquième et un septième.",
+      "handle": "Poignée de fréquence pour {{readout}}",
+      "handleHelp": "Déplacez avec les flèches ou W, A, S, D. Maintenez Maj pour un réglage plus fin.",
+      "handleHelpHeading": "Déplacer les poignées de fréquence"
     },
     "fourierTransform": {
       "screenSummary": {
-        "playArea": "La zone de jeu affiche le contenu principal de la simulation.",
-        "controlArea": "La zone de contrôle comporte un bouton Tout réinitialiser qui ramène la simulation à son état initial.",
-        "interactionHint": "Explorez la simulation en interagissant avec ses commandes."
+        "playArea": "Le schéma montre une onde plane, une ouverture, une lentille et le plan focal arrière. En dessous figurent l’ouverture et sa figure de diffraction avec une coupe centrale.",
+        "controlArea": "Choisissez une ouverture et ses dimensions. Réglez la longueur d’onde, la distance focale et le pas de la grille, ou ouvrez la comparaison par échange de phase.",
+        "interactionHint": "Essayez de rétrécir l’ouverture pour élargir la figure, ou échangez les phases de deux objets et comparez leurs reconstructions."
       },
-      "currentDetails": "La simulation est dans son état initial."
+      "currentDetails": "Ouverture : {{aperture}}. {{dimensions}} Longueur d’onde de {{wavelength}} nanomètres. Distance focale de {{focalLength}} millimètres. Pas de {{pitch}} micromètres. L’image focale couvre {{span}} millimètres.",
+      "swapDetails": "L’objet A est {{a}} et l’objet B est {{b}}. Chaque reconstruction conserve l’amplitude de Fourier d’un objet et utilise la phase de l’autre."
     },
     "spatialFiltering": {
       "screenSummary": {
@@ -42,5 +47,75 @@
   },
   "preferences": {
     "title": "Simulation"
+  },
+  "common": {
+    "object": "Objet",
+    "exposure": "Plage log. (dB)"
+  },
+  "spatial": {
+    "spectrum": "Spectre de Fourier · log |F|",
+    "xAxis": "νₓ (cycles/échantillon)",
+    "yAxis": "νᵧ (cycles/échantillon)",
+    "dc": "Continu",
+    "axesRange": "Axes gradués jusqu’à ±{{limit}} cycles/échantillon",
+    "gratings": "Réseaux sinusoïdaux",
+    "bars": "Bandes en créneau",
+    "preset": "Motif de l’objet",
+    "editing": "Réseau à modifier",
+    "grating1": "Réseau 1",
+    "grating2": "Réseau 2",
+    "grating3": "Réseau 3",
+    "period": "Période (échantillons)",
+    "orientation": "Orientation (°)",
+    "contrast": "Contraste",
+    "phase": "Phase (°)",
+    "readout": "{{name}} · {{period}} échantillons ↔ {{frequency}} cycles/échantillon · {{angle}}°",
+    "harmonics": "Spectre du créneau · amplitudes harmoniques relatives",
+    "harmonicOrder": "Rang harmonique"
+  },
+  "transform": {
+    "aperture": "Ouverture",
+    "focalPlane": "Plan focal arrière",
+    "lens": "Lentille",
+    "wave": "Onde plane",
+    "distance": "f = {{value}} mm",
+    "wavelength": "Longueur d’onde (nm)",
+    "focalLength": "Distance focale (mm)",
+    "pitch": "Pas de la grille (µm)",
+    "log": "Intensité logarithmique",
+    "phase": "Phase en couleur",
+    "tint": "Teinte spectrale",
+    "swap": "Échanger les phases de Fourier",
+    "objectA": "Objet A",
+    "objectB": "Objet B",
+    "resultA": "Amplitude A + phase B",
+    "resultB": "Amplitude B + phase A",
+    "swapHint": "Comparez chaque reconstruction à l’objet qui lui fournit sa phase.",
+    "logPattern": "Intensité focale · log",
+    "linearPattern": "Intensité focale · linéaire",
+    "phasePattern": "Phase focale · teinte",
+    "profile": "Coupe horizontale centrale · intensité relative",
+    "narrower": "Une ouverture plus étroite élargit la figure de diffraction.",
+    "micrometers": "{{value}} µm",
+    "millimeters": "{{value}} mm"
+  },
+  "apertures": {
+    "slit": "Fente",
+    "doubleSlit": "Fente double",
+    "rectangle": "Rectangle",
+    "circle": "Disque",
+    "annulus": "Anneau",
+    "grating": "Réseau",
+    "cross": "Croix",
+    "letterF": "Lettre F"
+  },
+  "dimensions": {
+    "width": "Largeur (échantillons)",
+    "height": "Hauteur (échantillons)",
+    "separation": "Écart entre les fentes (échantillons)",
+    "radius": "Rayon (échantillons)",
+    "innerRatio": "Rayon intérieur (% de l’extérieur)",
+    "period": "Période (échantillons)",
+    "thickness": "Épaisseur du trait (échantillons)"
   }
 }

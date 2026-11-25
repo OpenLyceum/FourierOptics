@@ -22,10 +22,6 @@ const ENTRY_PATH =
     ? "^src/main\\.ts$|^src/common/(SimControlOptions|SimPanel|TimeModel)\\.ts$"
     : "^src/main\\.ts$";
 
-// TEMPORARY (remove in phase 2): numerical core is exercised by Vitest before the screens import it.
-const PHASE_ONE_CORE =
-  "^src/common/(fourier/(FourierEngine|cpu/CpuFourierEngine)|model/(ComplexField|fft2d|apertures|masks|opticalSystem))\\.ts$";
-
 const ORPHAN_PATH_NOT = [
   "(^|/)\\.[^/]+\\.(js|cjs|mjs|ts|json)$",
   "\\.d\\.(c|m)?ts$",
@@ -235,7 +231,7 @@ const config = {
       severity: "error",
       comment: "Source modules must be reachable from the application entry point. Put test-only helpers in tests/.",
       from: { path: ENTRY_PATH },
-      to: { path: "^src/", pathNot: `${ENTRY_PATH}|${PHASE_ONE_CORE}|\\.d\\.(c|m)?ts$`, reachable: false },
+      to: { path: "^src/", pathNot: `${ENTRY_PATH}|\\.d\\.(c|m)?ts$`, reachable: false },
     },
     {
       name: "no-orphans",

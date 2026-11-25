@@ -46,3 +46,72 @@ FourierOpticsNamespace.register("FourierOpticsConstants", {
   SCREEN_VIEW_MARGIN,
   PANEL_CORNER_RADIUS,
 });
+
+/** Period in object samples, angles in degrees, and relative modulation contrast. */
+export const GRATING_PARAMETERS = {
+  period: { min: 4, max: 64 },
+  angle: { min: -180, max: 180 },
+  contrast: { min: 0, max: 1 },
+  defaults: [
+    { period: 8, angle: 0, contrast: 0.65 },
+    { period: 12.8, angle: 90, contrast: 0.35 },
+    { period: 16, angle: 45, contrast: 0.25 },
+  ],
+  bias: 0.5,
+  // Samples per cycle for the bar preset, with enough bins to resolve seven harmonics.
+  barPeriod: 32,
+  displayedHarmonics: 7,
+} as const;
+
+/** Aperture dimensions in object samples. */
+export const APERTURE_PARAMETERS = {
+  width: { default: 24, min: 2, max: 96 },
+  height: { default: 72, min: 8, max: 180 },
+  separation: { default: 32, min: 4, max: 56 },
+  radius: { default: 18, min: 2, max: 72 },
+  innerRatio: { default: 55, min: 5, max: 95 },
+  period: { default: 20, min: 4, max: 64 },
+  thickness: { default: 12, min: 2, max: 32 },
+} as const;
+
+/** Comparison objects use fixed sizes in samples so the two shapes read clearly side by side. */
+export const PHASE_COMPARISON_DIMENSIONS = {
+  width: 88,
+  height: 96,
+  separation: 32,
+  radius: 38,
+  innerRatio: 55,
+  period: 24,
+  thickness: 15,
+} as const;
+
+/** Exposure window in decibels below peak intensity. */
+export const EXPOSURE_DB = { default: 50, min: 10, max: 100 } as const;
+
+/** View dimensions in layout pixels, except the two crops (FFT bins). */
+export const OPTICS_LAYOUT = {
+  gap: 14,
+  smallGap: 6,
+  fieldSize: 226,
+  spectrumBins: 144,
+  focalBins: 80,
+  swapImageSize: 176,
+  controlWidth: 226,
+  trackWidth: 110,
+  titleFontSize: 18,
+  labelFontSize: 14,
+  smallFontSize: 12,
+  chartHeight: 72,
+  plotStroke: 1.5,
+  handleRadius: 6,
+  hitRadius: 14,
+  handleStep: 5,
+  fineHandleStep: 1,
+  scaleBarWidth: 86,
+  schematicWidth: 532,
+  schematicHeight: 92,
+  schematicPlaneSpacing: 114,
+} as const;
+
+/** Number of entries per unit of linear light in the sRGB lookup table. */
+export const SPECTRAL_GAMMA_TABLE_SIZE = 1024;

@@ -90,6 +90,26 @@ export class StringManager {
     };
   }
 
+  public getDimensionsStrings() {
+    return stringProperties.dimensions;
+  }
+
+  public getAperturesStrings() {
+    return stringProperties.apertures;
+  }
+
+  public getTransformStrings() {
+    return stringProperties.transform;
+  }
+
+  public getSpatialStrings() {
+    return stringProperties.spatial;
+  }
+
+  public getCommonStrings() {
+    return stringProperties.common;
+  }
+
   /** Accessibility strings for the Spatial Frequencies screen. */
   public getSpatialFrequenciesA11yStrings() {
     return stringProperties.a11y.spatialFrequencies;
