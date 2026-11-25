@@ -67,7 +67,10 @@ export function rasterizeMask(spec: MaskSpec, size: number): Float32Array {
   return field.data;
 }
 
-/** Multiplies one or more equally sized interleaved complex transmissions. */
+/**
+ * Multiplies one or more equally sized interleaved complex transmissions.
+ * @internal Exported for unit tests; not part of the application API.
+ */
 export function compose(masks: readonly Float32Array[]): Float32Array {
   const [first, ...rest] = masks;
   if (!first) {
