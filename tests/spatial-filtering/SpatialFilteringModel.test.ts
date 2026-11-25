@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createFourierEngine } from "../../src/common/fourier/createFourierEngine.js";
 import { ComplexField } from "../../src/common/model/ComplexField.js";
+import { rasterizeImagingObject } from "../../src/common/model/imagingObjects.js";
 import { FrameRecomputeScheduler } from "../../src/common/view/FrameRecomputeScheduler.js";
 import { FILTER_PARAMETERS as F } from "../../src/FourierOpticsConstants.js";
 import { SpatialFilteringModel } from "../../src/spatial-filtering/model/SpatialFilteringModel.js";
@@ -13,15 +14,18 @@ describe("SpatialFilteringModel", () => {
   afterEach(() => model.dispose());
 
   it("applies all four presets and switches to custom when the mask is edited", () => {
+    expect(model.zoomProperty.value).toBeLessThanOrEqual(8);
     for (const [preset, object, mask] of [
       ["abbePorter", "mesh", "slit"],
-      ["darkField", "phaseDisk", "dcBlock"],
-      ["phaseContrast", "phaseDisk", "phaseDot"],
+      ["darkField", "phaseCells", "dcBlock"],
+      ["phaseContrast", "phaseCells", "phaseDot"],
       ["edgeEnhancement", "letterF", "highPass"],
     ] as const) {
+      model.zoomProperty.value = 32;
       model.presetProperty.value = preset;
       expect(model.objectProperty.value).toBe(object);
       expect(model.getMask().kind).toBe(mask);
+      expect(model.zoomProperty.value).toBe(4);
     }
     expect(model.getMask()).toMatchObject({ kind: "highPass" });
     expect(model.radiusProperty.value).toBeCloseTo(F.edgeRadius);
@@ -69,7 +73,7 @@ describe("SpatialFilteringModel", () => {
     );
   });
 
-  it("removes the mean complex field in dark field", () => {
+  it("removes the mean complex field and shows bright cells on a dark background", () => {
     model.presetProperty.value = "darkField";
     model.recompute();
     let real = 0;
@@ -81,6 +85,12 @@ describe("SpatialFilteringModel", () => {
     }
     expect(real / model.size ** 2).toBeCloseTo(0, 7);
     expect(imaginary / model.size ** 2).toBeCloseTo(0, 7);
+    const background = intensityAt(model.reconstructed, 0, 0);
+    expect(background).toBeLessThan(0.0001);
+    const centre = model.size / 2;
+    for (const cell of F.phaseCells) {
+      expect(intensityAt(model.reconstructed, centre + cell.x, centre + cell.y)).toBeGreaterThan(0.5 * cell.phase ** 2);
+    }
   });
 
   it("converts a weak phase shift into about twice as much intensity contrast", () => {
@@ -90,9 +100,34 @@ describe("SpatialFilteringModel", () => {
     const dc = 2 * (centre * model.size + centre);
     expect(mask[dc]).toBeCloseTo(0);
     expect(mask[dc + 1]).toBeCloseTo(1);
-    const intensity = (x: number, y: number) => model.reconstructed.get(x, y).reduce((sum, v) => sum + v * v, 0);
-    expect(intensity(centre, centre) - intensity(0, 0)).toBeCloseTo(2 * F.weakPhase, 1);
+    for (let i = 0; i < mask.length; i += 2) {
+      if (i !== dc && (mask[i] !== 1 || mask[i + 1] !== 0)) {
+        throw new Error(`Phase dot changed non-DC bin ${i / 2}`);
+      }
+    }
+    const background = intensityAt(model.reconstructed, 0, 0);
+    for (const cell of F.phaseCells) {
+      const intensity = intensityAt(model.reconstructed, centre + cell.x, centre + cell.y);
+      // The first-order prediction omits intensity terms of order φ².
+      expect(Math.abs(intensity - background - 2 * cell.phase)).toBeLessThan(1.5 * cell.phase ** 2);
+    }
     expect(model.transmittedProperty.value).toBeCloseTo(1, 6);
+  });
+
+  it("preserves cell phases, positions, and proportions when grid resolution doubles", () => {
+    for (const size of [256, 512]) {
+      const field = new ComplexField(size);
+      rasterizeImagingObject("phaseCells", field, new ComplexField(size));
+      const scale = size / 256;
+      const centre = size / 2;
+      for (const cell of F.phaseCells) {
+        const x = centre + cell.x * scale;
+        const y = centre + cell.y * scale;
+        const [real, imaginary] = field.get(x + (cell.radiusX - 1) * scale, y);
+        expect(Math.atan2(imaginary, real)).toBeCloseTo(cell.phase, 6);
+        expect(field.get(x + (cell.radiusX + 1) * scale, y)).toEqual([1, 0]);
+      }
+    }
   });
 
   it("coalesces brush strokes by frame, erases bins, and resets all inputs and paint", () => {
@@ -129,3 +164,8 @@ describe("SpatialFilteringModel", () => {
     scheduler.dispose();
   });
 });
+
+function intensityAt(field: ComplexField, x: number, y: number): number {
+  const [real, imaginary] = field.get(x, y);
+  return real * real + imaginary * imaginary;
+}

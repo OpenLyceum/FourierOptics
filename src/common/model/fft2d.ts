@@ -81,6 +81,10 @@ function scale(data: Float32Array, divisor: number): void {
   }
 }
 
+/**
+ * In-place 1-D radix-2 FFT with the conventions above.
+ * @internal Exported for unit tests; not part of the application API.
+ */
 export function fft1d(data: Float32Array, inverse = false): void {
   const size = data.length / 2;
   ComplexField.checkSize(size);

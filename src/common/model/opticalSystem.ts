@@ -23,7 +23,10 @@ export function coherentCutoff(irisDiameterMm: number, wavelengthNm: number, f1M
   return irisDiameterMm / (2 * wavelengthUm * f1Mm);
 }
 
-/** Coherent limiting period in µm. A closed iris gives an infinite period. */
+/**
+ * Coherent limiting period in µm. A closed iris gives an infinite period.
+ * @internal Exported for unit tests; not part of the application API.
+ */
 export function smallestResolvedPeriod(irisDiameterMm: number, wavelengthNm: number, f1Mm: number): number {
   return 1 / coherentCutoff(irisDiameterMm, wavelengthNm, f1Mm);
 }

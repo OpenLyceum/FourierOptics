@@ -32,7 +32,7 @@
       "screenSummary": {
         "playArea": "From left to right are the object, the Fourier plane with a mask, and the upright reconstruction.",
         "controlArea": "Choose an object, filter, or preset. Move mask handles or paint and erase bins in the Fourier plane.",
-        "interactionHint": "Try the Abbe–Porter preset to remove horizontal lines from a mesh."
+        "interactionHint": "Compare Phase contrast and Dark field with the same transparent cells. Phase contrast makes cells lighter or darker than their surroundings. Dark field shows bright cells on a dark background."
       },
       "currentDetails": "Object {{object}}. Filter {{filter}}. Transmitted power {{power}} percent. {{effect}} {{cutoff}}",
       "radius": "Outer mask radius handle",
@@ -178,7 +178,7 @@
     "grating": "Grating",
     "mesh": "Mesh (crossed gratings)",
     "letterMesh": "Letter F behind a mesh",
-    "phaseDisk": "Weak phase object",
+    "phaseCells": "Phase cells",
     "sinusoids": "Sum of sinusoids",
     "resolutionTarget": "Resolution target"
   },
@@ -207,8 +207,8 @@
     "bandPass": "Only an intermediate band of spatial frequencies passes.",
     "verticalSlit": "A vertical slit passes frequency orders that form horizontal lines.",
     "horizontalSlit": "A horizontal slit passes frequency orders that form vertical lines.",
-    "dcBlock": "Blocking the zero order removes the mean field for dark-field imaging.",
-    "phaseDot": "Shifting the zero order turns phase variations into intensity contrast.",
+    "dcBlock": "Blocking only the central bin removes the mean field for dark-field imaging.",
+    "phaseDot": "Shifting only the central bin by +π/2 turns phase variations into intensity contrast.",
     "painted": "Painted bins are blocked. Erasing lets them pass again."
   },
   "filtering": {

@@ -44,7 +44,7 @@ export class SpatialFilteringScreenSummaryContent extends ScreenSummaryContent {
             width: toFixed(mask.width, 1),
             angle: toFixed((mask.angle * 180) / Math.PI, 1),
           });
-        } else if ("radius" in mask) {
+        } else if (mask.kind === "lowPass" || mask.kind === "highPass") {
           cutoff = StringUtils.fillIn(a11y.radialCutoffStringProperty.value, { radius: toFixed(mask.radius, 1) });
         }
         return StringUtils.fillIn(a11y.currentDetailsStringProperty.value, {

@@ -32,7 +32,7 @@
       "screenSummary": {
         "playArea": "De izquierda a derecha están el objeto, el plano de Fourier con una máscara y la reconstrucción derecha.",
         "controlArea": "Elige un objeto, un filtro o un preajuste. Mueve los tiradores de la máscara o pinta y borra celdas del plano de Fourier.",
-        "interactionHint": "Prueba el preajuste Abbe–Porter para eliminar las líneas horizontales de la malla."
+        "interactionHint": "Compara los preajustes Contraste de fase y Campo oscuro con las mismas células transparentes. En contraste de fase, las células se ven más claras o más oscuras que su entorno. En campo oscuro, se ven brillantes sobre un fondo oscuro."
       },
       "currentDetails": "Objeto {{object}}. Filtro {{filter}}. Potencia transmitida: {{power}} por ciento. {{effect}} {{cutoff}}",
       "radius": "Tirador del radio exterior de la máscara",
@@ -178,7 +178,7 @@
     "grating": "Red",
     "mesh": "Malla (redes cruzadas)",
     "letterMesh": "Letra F detrás de una malla",
-    "phaseDisk": "Objeto de fase débil",
+    "phaseCells": "Células de fase",
     "sinusoids": "Suma de sinusoides",
     "resolutionTarget": "Patrón de resolución"
   },
@@ -207,8 +207,8 @@
     "bandPass": "Solo pasa una banda intermedia de frecuencias espaciales.",
     "verticalSlit": "Una rendija vertical deja pasar los órdenes que forman líneas horizontales.",
     "horizontalSlit": "Una rendija horizontal deja pasar los órdenes que forman líneas verticales.",
-    "dcBlock": "Al bloquear el orden cero, se elimina el campo medio y se obtiene una imagen de campo oscuro.",
-    "phaseDot": "El desfase del orden cero convierte las variaciones de fase en contraste de intensidad.",
+    "dcBlock": "Al bloquear solo la casilla central, se elimina el campo medio y se obtiene una imagen de campo oscuro.",
+    "phaseDot": "Un desfase de +π/2 aplicado solo a la casilla central convierte las variaciones de fase en contraste de intensidad.",
     "painted": "Las celdas pintadas se bloquean. Al borrarlas, vuelven a transmitir."
   },
   "filtering": {
