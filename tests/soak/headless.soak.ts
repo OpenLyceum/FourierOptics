@@ -12,15 +12,19 @@
 
 import { StringProperty } from "scenerystack/axon";
 import { Tandem } from "scenerystack/tandem";
-// seed:soak-imports:start
-import SimColors from "../../src/SimColors.js";
-import { SimScreen } from "../../src/sim-screen/SimScreen.js";
-// seed:soak-imports:end
+import FourierOpticsColors from "../../src/FourierOpticsColors.js";
+import { FourFOpticalSystemScreen } from "../../src/four-f-optical-system/FourFOpticalSystemScreen.js";
+import { FourierTransformScreen } from "../../src/fourier-transform/FourierTransformScreen.js";
+import { SpatialFilteringScreen } from "../../src/spatial-filtering/SpatialFilteringScreen.js";
+import { SpatialFrequenciesScreen } from "../../src/spatial-frequencies/SpatialFrequenciesScreen.js";
 import { describeHeadlessSoak } from "../helpers/headlessSoak.js";
 
 describeHeadlessSoak({
-  // seed:soak-screens:start
-  screens: () => [new SimScreen({ name: new StringProperty("Sim"), tandem: Tandem.OPT_OUT })],
-  tracked: () => ({ SimColors }),
-  // seed:soak-screens:end
+  screens: () => [
+    new SpatialFrequenciesScreen({ name: new StringProperty("Spatial Frequencies"), tandem: Tandem.OPT_OUT }),
+    new FourierTransformScreen({ name: new StringProperty("Fourier Transform"), tandem: Tandem.OPT_OUT }),
+    new SpatialFilteringScreen({ name: new StringProperty("Spatial Filtering"), tandem: Tandem.OPT_OUT }),
+    new FourFOpticalSystemScreen({ name: new StringProperty("4f Optical System"), tandem: Tandem.OPT_OUT }),
+  ],
+  tracked: () => ({ FourierOpticsColors }),
 });

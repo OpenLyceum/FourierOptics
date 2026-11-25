@@ -9,11 +9,15 @@
  * tests below using forceGC().
  */
 
-// seed:leak-imports:start
-import { TimeModel } from "../src/common/TimeModel.js";
-// seed:leak-imports:end
+import { FourFOpticalSystemModel } from "../src/four-f-optical-system/model/FourFOpticalSystemModel.js";
+import { FourierTransformModel } from "../src/fourier-transform/model/FourierTransformModel.js";
+import { SpatialFilteringModel } from "../src/spatial-filtering/model/SpatialFilteringModel.js";
+import { SpatialFrequenciesModel } from "../src/spatial-frequencies/model/SpatialFrequenciesModel.js";
 import { describeDisposalLeaks } from "./helpers/memoryLeak.js";
 
-// seed:leak-cases:start
-describeDisposalLeaks([{ name: "TimeModel", create: () => new TimeModel(), idempotentDispose: true }]);
-// seed:leak-cases:end
+describeDisposalLeaks([
+  { name: "SpatialFrequenciesModel", create: () => new SpatialFrequenciesModel() },
+  { name: "FourierTransformModel", create: () => new FourierTransformModel() },
+  { name: "SpatialFilteringModel", create: () => new SpatialFilteringModel() },
+  { name: "FourFOpticalSystemModel", create: () => new FourFOpticalSystemModel() },
+]);

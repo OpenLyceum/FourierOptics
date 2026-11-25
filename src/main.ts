@@ -21,24 +21,41 @@ import "./brand.js";
 
 import { onReadyToLaunch, PreferencesModel, Sim } from "scenerystack/sim";
 import { Tandem } from "scenerystack/tandem";
+import FourierOpticsColors from "./FourierOpticsColors.js";
+import { FourFOpticalSystemScreen } from "./four-f-optical-system/FourFOpticalSystemScreen.js";
+import { FourierTransformScreen } from "./fourier-transform/FourierTransformScreen.js";
 import { StringManager } from "./i18n/StringManager.js";
-import { SimPreferencesModel } from "./preferences/SimPreferencesModel.js";
-import { SimPreferencesNode } from "./preferences/SimPreferencesNode.js";
-import SimColors from "./SimColors.js";
-import { SimScreen } from "./sim-screen/SimScreen.js";
+import { FourierOpticsPreferencesModel } from "./preferences/FourierOpticsPreferencesModel.js";
+import { FourierOpticsPreferencesNode } from "./preferences/FourierOpticsPreferencesNode.js";
+import { SpatialFilteringScreen } from "./spatial-filtering/SpatialFilteringScreen.js";
+import { SpatialFrequenciesScreen } from "./spatial-frequencies/SpatialFrequenciesScreen.js";
 
 onReadyToLaunch(() => {
   const stringManager = StringManager.getInstance();
 
-  // Simulation-specific preferences; initial values come from simQueryParameters.
-  const simPreferences = new SimPreferencesModel(Tandem.ROOT.createTandem("preferences"));
+  // Simulation-specific preferences; initial values come from fourierOpticsQueryParameters.
+  const simPreferences = new FourierOpticsPreferencesModel(Tandem.ROOT.createTandem("preferences"));
 
   const screens = [
-    new SimScreen({
-      // The screen name Property updates automatically when the locale changes
-      name: stringManager.getScreenNames().simStringProperty,
-      tandem: Tandem.ROOT.createTandem("simScreen"),
-      backgroundColorProperty: SimColors.backgroundColorProperty,
+    new SpatialFrequenciesScreen({
+      name: stringManager.getScreenNames().spatialFrequenciesStringProperty,
+      tandem: Tandem.ROOT.createTandem("spatialFrequenciesScreen"),
+      backgroundColorProperty: FourierOpticsColors.backgroundColorProperty,
+    }),
+    new FourierTransformScreen({
+      name: stringManager.getScreenNames().fourierTransformStringProperty,
+      tandem: Tandem.ROOT.createTandem("fourierTransformScreen"),
+      backgroundColorProperty: FourierOpticsColors.backgroundColorProperty,
+    }),
+    new SpatialFilteringScreen({
+      name: stringManager.getScreenNames().spatialFilteringStringProperty,
+      tandem: Tandem.ROOT.createTandem("spatialFilteringScreen"),
+      backgroundColorProperty: FourierOpticsColors.backgroundColorProperty,
+    }),
+    new FourFOpticalSystemScreen({
+      name: stringManager.getScreenNames().fourFOpticalSystemStringProperty,
+      tandem: Tandem.ROOT.createTandem("fourFOpticalSystemScreen"),
+      backgroundColorProperty: FourierOpticsColors.backgroundColorProperty,
     }),
   ];
 
@@ -53,7 +70,7 @@ onReadyToLaunch(() => {
       simulationOptions: {
         customPreferences: [
           {
-            createContent: (tandem: Tandem) => new SimPreferencesNode(simPreferences, tandem),
+            createContent: (tandem: Tandem) => new FourierOpticsPreferencesNode(simPreferences, tandem),
           },
         ],
       },

@@ -1,21 +1,46 @@
 {
-  "title": "SceneryStack Template",
+  "title": "Fourier Optics",
   "screens": {
-    "sim": "Sim"
+    "spatialFrequencies": "Spatial Frequencies",
+    "fourierTransform": "Fourier Transform",
+    "spatialFiltering": "Spatial Filtering",
+    "fourFOpticalSystem": "4f Optical System"
   },
   "a11y": {
-    "screenSummary": {
-      "playArea": "The play area shows the main simulation content.",
-      "controlArea": "The control area has a Reset All button that returns the simulation to its starting state.",
-      "interactionHint": "Explore the simulation by interacting with its controls."
+    "spatialFrequencies": {
+      "screenSummary": {
+        "playArea": "The play area shows the main simulation content.",
+        "controlArea": "The control area has a Reset All button that returns the simulation to its starting state.",
+        "interactionHint": "Explore the simulation by interacting with its controls."
+      },
+      "currentDetails": "The simulation is in its initial state."
     },
-    "currentDetails": "The simulation is in its initial state.",
-    "controls": {
-      "exampleControl": "Example control"
+    "fourierTransform": {
+      "screenSummary": {
+        "playArea": "The play area shows the main simulation content.",
+        "controlArea": "The control area has a Reset All button that returns the simulation to its starting state.",
+        "interactionHint": "Explore the simulation by interacting with its controls."
+      },
+      "currentDetails": "The simulation is in its initial state."
+    },
+    "spatialFiltering": {
+      "screenSummary": {
+        "playArea": "The play area shows the main simulation content.",
+        "controlArea": "The control area has a Reset All button that returns the simulation to its starting state.",
+        "interactionHint": "Explore the simulation by interacting with its controls."
+      },
+      "currentDetails": "The simulation is in its initial state."
+    },
+    "fourFOpticalSystem": {
+      "screenSummary": {
+        "playArea": "The play area shows the main simulation content.",
+        "controlArea": "The control area has a Reset All button that returns the simulation to its starting state.",
+        "interactionHint": "Explore the simulation by interacting with its controls."
+      },
+      "currentDetails": "The simulation is in its initial state."
     }
   },
   "preferences": {
-    "title": "Simulation",
-    "exampleToggle": "Example Toggle"
+    "title": "Simulation"
   }
 }

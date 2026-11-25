@@ -1,21 +1,46 @@
 {
-  "title": "Plantilla de Simulación",
+  "title": "Fourier Optics",
   "screens": {
-    "sim": "Simulación"
+    "spatialFrequencies": "Spatial Frequencies",
+    "fourierTransform": "Fourier Transform",
+    "spatialFiltering": "Spatial Filtering",
+    "fourFOpticalSystem": "Sistema óptico 4f"
   },
   "a11y": {
-    "screenSummary": {
-      "playArea": "El área de juego muestra el contenido principal de la simulación.",
-      "controlArea": "El área de control tiene un botón Restablecer todo que devuelve la simulación a su estado inicial.",
-      "interactionHint": "Explora la simulación interactuando con sus controles."
+    "spatialFrequencies": {
+      "screenSummary": {
+        "playArea": "El área de juego muestra el contenido principal de la simulación.",
+        "controlArea": "El área de control tiene un botón Restablecer todo que devuelve la simulación a su estado inicial.",
+        "interactionHint": "Explora la simulación interactuando con sus controles."
+      },
+      "currentDetails": "La simulación está en su estado inicial."
     },
-    "currentDetails": "La simulación está en su estado inicial.",
-    "controls": {
-      "exampleControl": "Control de ejemplo"
+    "fourierTransform": {
+      "screenSummary": {
+        "playArea": "El área de juego muestra el contenido principal de la simulación.",
+        "controlArea": "El área de control tiene un botón Restablecer todo que devuelve la simulación a su estado inicial.",
+        "interactionHint": "Explora la simulación interactuando con sus controles."
+      },
+      "currentDetails": "La simulación está en su estado inicial."
+    },
+    "spatialFiltering": {
+      "screenSummary": {
+        "playArea": "El área de juego muestra el contenido principal de la simulación.",
+        "controlArea": "El área de control tiene un botón Restablecer todo que devuelve la simulación a su estado inicial.",
+        "interactionHint": "Explora la simulación interactuando con sus controles."
+      },
+      "currentDetails": "La simulación está en su estado inicial."
+    },
+    "fourFOpticalSystem": {
+      "screenSummary": {
+        "playArea": "El área de juego muestra el contenido principal de la simulación.",
+        "controlArea": "El área de control tiene un botón Restablecer todo que devuelve la simulación a su estado inicial.",
+        "interactionHint": "Explora la simulación interactuando con sus controles."
+      },
+      "currentDetails": "La simulación está en su estado inicial."
     }
   },
   "preferences": {
-    "title": "Simulación",
-    "exampleToggle": "Ejemplo de alternancia"
+    "title": "Simulación"
   }
 }
