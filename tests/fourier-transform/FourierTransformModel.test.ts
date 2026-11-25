@@ -9,8 +9,7 @@ describe("FourierTransformModel", () => {
     expect(model.focalStepProperty.value).toBeCloseTo((0.55 * 100) / (256 * 10), 10);
     model.wavelengthProperty.value = 650;
     model.focalLengthProperty.value = 200;
-    model.pitchProperty.value = 5;
-    expect(model.focalStepProperty.value).toBeCloseTo((0.65 * 200) / (256 * 5), 10);
+    expect(model.focalStepProperty.value).toBeCloseTo((0.65 * 200) / (256 * 10), 10);
     model.apertureProperty.value = "annulus";
     model.objectAProperty.value = "slit";
     model.objectBProperty.value = "circle";
@@ -24,7 +23,7 @@ describe("FourierTransformModel", () => {
     expect(model.apertureProperty.value).toBe("circle");
     expect(model.objectAProperty.value).toBe("letterF");
     expect(model.objectBProperty.value).toBe("cross");
-    expect(model.dimensions.radius.value).toBe(18);
+    expect(model.dimensions.radius.value).toBeCloseTo(180);
     expect(model.exposureProperty.value).toBe(50);
     expect(model.focalStepProperty.value).toBeCloseTo((0.55 * 100) / (256 * 10), 10);
     expect([
@@ -50,7 +49,21 @@ describe("FourierTransformModel", () => {
       model.recompute();
       return (Math.hypot(...model.spectrum.get(center + 8, center)) / model.spectrum.get(center, center)[0]) ** 2;
     };
-    expect(relativeIntensityAtBin(6)).toBeGreaterThan(relativeIntensityAtBin(30));
+    expect(relativeIntensityAtBin(60)).toBeGreaterThan(relativeIntensityAtBin(300));
+    model.dispose();
+  });
+
+  it("fits the fifth Airy minimum and limits the span to the optical grid", () => {
+    const model = new FourierTransformModel();
+    model.fitPattern();
+    expect(model.focalViewProperty.value).toBeCloseTo((2 * 5.24 * 0.55 * 100) / 360, 5);
+    model.focalLengthProperty.value = 200;
+    model.fitPattern();
+    expect(model.focalViewProperty.value).toBeCloseTo((2 * 5.24 * 0.55 * 200) / 360, 5);
+    model.dimensions.radius.value = 20;
+    model.fitPattern();
+    expect(model.focalViewProperty.value).toBeCloseTo((0.55 * 200) / 10, 5);
+    expect(model.focalCropProperty.value).toBe(model.size);
     model.dispose();
   });
 

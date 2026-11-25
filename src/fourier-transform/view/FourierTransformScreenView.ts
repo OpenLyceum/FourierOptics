@@ -1,26 +1,32 @@
-import { DerivedProperty, Multilink, PatternStringProperty } from "scenerystack/axon";
-import { Bounds2 } from "scenerystack/dot";
+import { DerivedProperty, Multilink, PatternStringProperty, type TReadOnlyProperty } from "scenerystack/axon";
+import { Bounds2, toFixed } from "scenerystack/dot";
 import { Shape } from "scenerystack/kite";
 import { type EmptySelfOptions, optionize } from "scenerystack/phet-core";
 import { ModelViewTransform2, StringUtils } from "scenerystack/phetcommon";
 import { HBox, Node, Path, Rectangle, VBox } from "scenerystack/scenery";
 import { ResetAllButton } from "scenerystack/scenery-phet";
 import { ScreenView, type ScreenViewOptions } from "scenerystack/sim";
-import { FLAT_RESET_ALL_BUTTON_OPTIONS } from "../../common/FourierOpticsButtonOptions.js";
+import { RectangularPushButton } from "scenerystack/sun";
+import {
+  FLAT_PANEL_PUSH_BUTTON_OPTIONS,
+  FLAT_RESET_ALL_BUTTON_OPTIONS,
+} from "../../common/FourierOpticsButtonOptions.js";
 import { FourierOpticsPanel } from "../../common/FourierOpticsPanel.js";
 import { backendStatus } from "../../common/view/backendStatus.js";
-import { checkbox, combo, heading, label, numberControl, zoomControl } from "../../common/view/controls.js";
+import { checkbox, combo, heading, label, numberControl } from "../../common/view/controls.js";
 import { FieldImageNode } from "../../common/view/FieldImageNode.js";
 import { FrameRecomputeScheduler } from "../../common/view/FrameRecomputeScheduler.js";
 import { LensSchematicNode } from "../../common/view/LensSchematicNode.js";
-import { zoomCrop } from "../../common/view/spectrumZoom.js";
 import Colors from "../../FourierOpticsColors.js";
-import { OPTICS_LAYOUT as L, SCREEN_VIEW_MARGIN } from "../../FourierOpticsConstants.js";
+import {
+  FOCAL_VIEW_MM,
+  OPTICS_LAYOUT as L,
+  MICROMETERS_PER_MILLIMETER,
+  SCREEN_VIEW_MARGIN,
+} from "../../FourierOpticsConstants.js";
 import { StringManager } from "../../i18n/StringManager.js";
 import { APERTURE_DIMENSIONS, APERTURE_KINDS, type FourierTransformModel } from "../model/FourierTransformModel.js";
 import { FourierTransformScreenSummaryContent } from "./FourierTransformScreenSummaryContent.js";
-
-const MICROMETERS_PER_MILLIMETER = 1000;
 
 export class FourierTransformScreenView extends ScreenView {
   private readonly scheduler: FrameRecomputeScheduler;
@@ -38,10 +44,6 @@ export class FourierTransformScreenView extends ScreenView {
     const strings = manager.getTransformStrings();
     const common = manager.getCommonStrings();
     const fieldSize = L.fieldSize;
-    const presetZoom = (kind: typeof model.apertureProperty.value) => {
-      model.zoomProperty.value = kind === "letterF" || kind === "cross" || kind === "grating" ? 4 : 2;
-    };
-    model.apertureProperty.link(presetZoom);
     const apertureImage = new FieldImageNode(fieldSize);
     const focalImage = new FieldImageNode(fieldSize, true);
     const focalHeadingProperty = new DerivedProperty(
@@ -66,42 +68,25 @@ export class FourierTransformScreenView extends ScreenView {
     schematic.disposeEmitter.addListener(() => focalLengthLabelProperty.dispose());
 
     const barLabelProperty = new DerivedProperty(
-      [
-        model.focalStepProperty,
-        model.sizeProperty,
-        model.zoomProperty,
-        strings.micrometersStringProperty,
-        strings.millimetersStringProperty,
-      ],
-      (step, size, factor, micro, milli) => {
-        const mm = (step * zoomCrop(L.focalBins, factor, size) * L.scaleBarWidth) / fieldSize;
-        return StringUtils.fillIn(mm < 1 ? micro : milli, {
-          value: (mm < 1 ? mm * MICROMETERS_PER_MILLIMETER : mm).toPrecision(3),
-        });
-      },
+      [model.focalStepProperty, model.focalCropProperty, strings.micrometersStringProperty],
+      (step, crop, micrometers) =>
+        StringUtils.fillIn(micrometers, {
+          value: toFixed((step * crop * MICROMETERS_PER_MILLIMETER * L.scaleBarWidth) / fieldSize, 0),
+        }),
     );
-    const halfBar = L.scaleBarWidth / 2;
-    const scaleBar = new VBox({
-      spacing: L.smallGap / 2,
-      children: [
-        new Path(
-          new Shape()
-            .moveTo(-halfBar, 0)
-            .lineTo(-halfBar, L.smallGap)
-            .moveTo(-halfBar, L.smallGap / 2)
-            .lineTo(halfBar, L.smallGap / 2)
-            .moveTo(halfBar, 0)
-            .lineTo(halfBar, L.smallGap),
-          { stroke: Colors.textColorProperty, lineWidth: L.plotStroke },
-        ),
-        label(barLabelProperty),
-      ],
-    });
-    scaleBar.disposeEmitter.addListener(() => barLabelProperty.dispose());
+    const apertureBarLabelProperty = new DerivedProperty(
+      [model.apertureCropProperty, strings.micrometersStringProperty],
+      (crop, pattern) =>
+        StringUtils.fillIn(pattern, {
+          value: toFixed((crop * model.pitchUm * L.scaleBarWidth) / fieldSize, 0),
+        }),
+    );
+    const scaleBar = createScaleBar(barLabelProperty);
+    const apertureScaleBar = createScaleBar(apertureBarLabelProperty);
 
     const profileLine = new Path(null, { stroke: Colors.accentColorProperty, lineWidth: L.plotStroke });
     const profileTransform = ModelViewTransform2.createRectangleInvertedYMapping(
-      new Bounds2(0, 0, L.focalBins - 1, 1),
+      new Bounds2(0, 0, 1, 1),
       new Bounds2(L.plotStroke, L.plotStroke, fieldSize - L.plotStroke, L.chartHeight - L.plotStroke),
     );
     const profile = new VBox({
@@ -130,6 +115,7 @@ export class FourierTransformScreenView extends ScreenView {
               children: [
                 heading(strings.apertureStringProperty, fieldSize),
                 apertureImage,
+                apertureScaleBar,
                 label(strings.narrowerStringProperty, { maxWidth: fieldSize }),
               ],
             }),
@@ -174,7 +160,14 @@ export class FourierTransformScreenView extends ScreenView {
     const dimensionStrings = manager.getDimensionsStrings();
     const dimensionControls = Object.entries(model.dimensions).map(([id, property]) => {
       const key = id as keyof typeof model.dimensions;
-      return { key, node: numberControl(dimensionStrings[`${key}StringProperty`], property) };
+      return {
+        key,
+        node: numberControl(
+          dimensionStrings[`${key}StringProperty`],
+          property,
+          key === "innerRatio" ? 1 : model.pitchUm,
+        ),
+      };
     });
     const dimensions = new VBox({
       align: "left",
@@ -200,11 +193,23 @@ export class FourierTransformScreenView extends ScreenView {
         dimensions,
         numberControl(strings.wavelengthStringProperty, model.wavelengthProperty),
         numberControl(strings.focalLengthStringProperty, model.focalLengthProperty),
-        numberControl(strings.pitchStringProperty, model.pitchProperty),
         log,
         checkbox(strings.phaseStringProperty, model.phaseProperty),
         tint,
-        zoomControl(model.zoomProperty),
+        numberControl(
+          strings.fieldOfViewStringProperty,
+          model.focalViewProperty,
+          FOCAL_VIEW_MM.step,
+          strings.fieldOfViewHelpStringProperty,
+          model.focalViewRangeProperty,
+        ),
+        new RectangularPushButton({
+          ...FLAT_PANEL_PUSH_BUTTON_OPTIONS,
+          accessibleName: strings.fitPatternStringProperty,
+          accessibleHelpText: strings.fitPatternHelpStringProperty,
+          content: label(strings.fitPatternStringProperty, { fill: Colors.controlSurfaceTextColorProperty }),
+          listener: () => model.fitPattern(),
+        }),
         exposure,
       ],
     });
@@ -219,6 +224,7 @@ export class FourierTransformScreenView extends ScreenView {
 
     const reset = new ResetAllButton({
       ...FLAT_RESET_ALL_BUTTON_OPTIONS,
+      accessibleHelpText: manager.getCommonStrings().resetHelpStringProperty,
       right: this.layoutBounds.maxX - SCREEN_VIEW_MARGIN,
       bottom: this.layoutBounds.maxY - SCREEN_VIEW_MARGIN,
       listener: () => {
@@ -264,7 +270,8 @@ export class FourierTransformScreenView extends ScreenView {
         model.tintProperty,
         model.exposureProperty,
         model.wavelengthProperty,
-        model.zoomProperty,
+        model.focalLengthProperty,
+        model.focalViewProperty,
       ],
       () => model.inputsChangedEmitter.emit(),
     );
@@ -272,16 +279,18 @@ export class FourierTransformScreenView extends ScreenView {
       model.submit((ops) => {
         model.recompute(ops);
         if (model.swapProperty.value) {
-          const pictures = swappedImages.map(({ image, field }) => image.capture(ops, field(), "intensity"));
+          const pictures = swappedImages.map(({ image, field }) =>
+            image.capture(ops, field(), "intensity", model.apertureCropProperty.value),
+          );
           return () => {
             for (const paint of pictures) {
               paint();
             }
           };
         }
-        const crop = zoomCrop(L.focalBins, model.zoomProperty.value, model.size);
+        const crop = model.focalCropProperty.value;
         const mode = model.phaseProperty.value ? "phase" : model.logProperty.value ? "log" : "intensity";
-        const aperture = apertureImage.capture(ops, model.object, "amplitude");
+        const aperture = apertureImage.capture(ops, model.object, "amplitude", model.apertureCropProperty.value);
         const focal = focalImage.capture(
           ops,
           model.spectrum,
@@ -303,7 +312,6 @@ export class FourierTransformScreenView extends ScreenView {
       this.scheduler.dispose();
       visibility.dispose();
       displayLink.dispose();
-      model.apertureProperty.unlink(presetZoom);
     });
   }
 
@@ -322,7 +330,7 @@ function updateProfile(data: Float32Array, line: Path, transform: ModelViewTrans
     const real = data[index] ?? 0;
     const imaginary = data[index + 1] ?? 0;
     const y = Math.min(1, (real * real + imaginary * imaginary) * norm);
-    const viewX = transform.modelToViewX((x * (L.focalBins - 1)) / (crop - 1));
+    const viewX = transform.modelToViewX((x + 0.5) / crop);
     const viewY = transform.modelToViewY(y);
     if (x === 0) {
       shape.moveTo(viewX, viewY);
@@ -331,4 +339,26 @@ function updateProfile(data: Float32Array, line: Path, transform: ModelViewTrans
     }
   }
   line.shape = shape;
+}
+
+function createScaleBar(barLabelProperty: TReadOnlyProperty<string> & { dispose(): void }): VBox {
+  const halfBar = L.scaleBarWidth / 2;
+  const scaleBar = new VBox({
+    spacing: L.smallGap / 2,
+    children: [
+      new Path(
+        new Shape()
+          .moveTo(-halfBar, 0)
+          .lineTo(-halfBar, L.smallGap)
+          .moveTo(-halfBar, L.smallGap / 2)
+          .lineTo(halfBar, L.smallGap / 2)
+          .moveTo(halfBar, 0)
+          .lineTo(halfBar, L.smallGap),
+        { stroke: Colors.textColorProperty, lineWidth: L.plotStroke },
+      ),
+      label(barLabelProperty),
+    ],
+  });
+  scaleBar.disposeEmitter.addListener(() => barLabelProperty.dispose());
+  return scaleBar;
 }

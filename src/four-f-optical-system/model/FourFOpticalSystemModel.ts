@@ -17,7 +17,9 @@ import {
 import {
   DEFOCUS_MM,
   OPTICAL_PARAMETERS as O,
+  OBJECT_SPECTRUM_ZOOM,
   RESOLUTION_PERIODS,
+  RESOLUTION_TARGET_SPECTRUM_ZOOM,
   SPECTRUM_ZOOMS,
   type SpectrumZoom,
 } from "../../FourierOpticsConstants.js";
@@ -30,8 +32,10 @@ const numberProperty = ({ default: value, min, max }: { default: number; min: nu
   new NumberProperty(value, { range: new Range(min, max) });
 
 export class FourFOpticalSystemModel extends FourierScreenModel implements TModel {
-  public readonly zoomProperty = new Property<SpectrumZoom>(2, { validValues: SPECTRUM_ZOOMS });
-  public readonly pitchUm = O.pitchUm.default;
+  public readonly zoomProperty = new Property<SpectrumZoom>(RESOLUTION_TARGET_SPECTRUM_ZOOM, {
+    validValues: SPECTRUM_ZOOMS,
+  });
+  public readonly pitchUm = O.pitchUm;
   public readonly objectProperty = new Property<(typeof SYSTEM_OBJECTS)[number]>("resolutionTarget", {
     validValues: SYSTEM_OBJECTS,
   });
@@ -51,6 +55,10 @@ export class FourFOpticalSystemModel extends FourierScreenModel implements TMode
   public readonly periodProperty = new DerivedProperty(
     [this.coherentCutoffProperty, this.incoherentCutoffProperty, this.illuminationProperty],
     (coherent, incoherent, illumination) => 1 / (illumination === "coherent" ? coherent : incoherent),
+  );
+  public readonly finestBarsInPassbandProperty = new DerivedProperty(
+    [this.periodProperty],
+    (limitingPeriod) => limitingPeriod <= Math.min(...RESOLUTION_PERIODS) * this.pitchUm,
   );
   public readonly pupilRadiusProperty = new DerivedProperty(
     [this.coherentCutoffProperty, this.sizeProperty],
@@ -89,6 +97,10 @@ export class FourFOpticalSystemModel extends FourierScreenModel implements TMode
 
   public constructor(preferences?: FourierOpticsPreferencesModel) {
     super(preferences);
+    this.objectProperty.lazyLink((object) => {
+      this.zoomProperty.value =
+        object === "resolutionTarget" ? RESOLUTION_TARGET_SPECTRUM_ZOOM : OBJECT_SPECTRUM_ZOOM[object];
+    });
   }
 
   public recompute(ops: FourierOperations = this.cpu): Float32Array {
@@ -164,6 +176,7 @@ export class FourFOpticalSystemModel extends FourierScreenModel implements TMode
     this.inputLink.dispose();
     for (const property of [
       this.pupilRadiusProperty,
+      this.finestBarsInPassbandProperty,
       this.periodProperty,
       this.coherentCutoffProperty,
       this.incoherentCutoffProperty,

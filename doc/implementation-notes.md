@@ -12,7 +12,7 @@ Complex masks, phase swaps, camera resampling, peak reduction, and intensity, lo
 
 `FrameRecomputeScheduler` allows one pending submission per screen. Changes increment a revision and coalesce until the next available step. A completed frame's paint callback runs only if its revision is current. During a rebuild the previous painted image stays in place until the new backend finishes a frame. Backend or grid changes dispose the old engine and its buffers. The models replace sampled field sets on the next access at the new grid size. A painted Fourier mask starts open on a new grid.
 
-Startup checks the compilation diagnostics and creates each compute pipeline before launch. Device loss or a runtime GPU error demotes to the CPU. A single dismissible message explains fallback across the screens for that run.
+Automatic mode requests the default adapter and skips device creation when the adapter identifies itself as a fallback. Explicit GPU can use that adapter. Startup checks shader diagnostics and creates each pipeline before launch. Once an Automatic GPU screen completes eight submissions, the screen model tests their median elapsed time, including readback. Above 30 ms, a shared preference flag switches all screens in Automatic to the 256² CPU default even if a larger grid was requested. Explicit GPU bypasses that timing check. Device loss and runtime GPU errors also trigger CPU fallback. The badge shows the effective backend and resolution. A single dismissible notice explains the fallback for that session.
 
 ## Pupil cache
 
@@ -20,6 +20,18 @@ Both engines cache the normalized, centred OTF on their own grid. The first inco
 
 ## Spectrum zoom and measurement
 
-Screens 2–4 offer ×1, ×2, ×4, and ×8 centred crops. The transform screen's profile and physical scale follow the crop. The filtering and 4f views use the same bin-to-view mapping for the raster, overlay and input tools. Aperture and preset selections choose an initial zoom that shows the relevant features. At higher resolution a fixed-size aperture has more surrounding zero samples, so its diffraction pattern is sampled more finely over the same frequency span. The focal image also interpolates the displayed pixels when scaled to the panel.
+Screen 2 sets the requested focal-plane span in mm. The control is limited to the physical
+span supported by the current wavelength, focal length and fixed pitch. Fit pattern estimates
+the diffraction extent from the current aperture dimensions and lens mapping. It targets the
+fifth Airy minimum for a circle and uses characteristic widths or grating orders for the other
+shapes. The displayed crop is rounded to even bins. The centreline profile and focal scale bar
+use that crop, and the aperture view has its own µm scale. Focal image interpolation smooths the
+display between samples.
+
+Screens 3 and 4 offer ×1, ×2, ×4, ×8, ×16 and ×32 centred crops. Object and preset choices set an
+initial zoom. Adjustable masks start at a wider view to keep their handles in reach. The raster,
+overlays, iris outline and input coordinates share the same even-bin crop and half-pixel centring.
+The weak phase object uses a diverging palette centred on neutral grey at zero phase. Its legend
+spans ±0.2 rad, and the view colours the CPU-resident object raster on either backend.
 
 `?timing` logs median completed-frame time after the first frame, including display conversion, GPU readback and canvas update. It uses up to 60 recent samples per screen, backend, grid and illumination mode. Spatial Filtering uses coherent illumination. The 4f screen supports both coherent and incoherent measurements.

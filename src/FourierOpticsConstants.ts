@@ -23,7 +23,6 @@ export const SCREEN_VIEW_MARGIN = 20;
 
 /**
  * Corner radius shared by control panels and dialogs.
- * @public
  */
 export const PANEL_CORNER_RADIUS = 6;
 
@@ -35,7 +34,7 @@ export const PANEL_CORNER_RADIUS = 6;
  */
 export const OPTICAL_PARAMETERS = {
   gridSize: { default: 256, min: 64, max: 1024 },
-  pitchUm: { default: 10, min: 1, max: 25 },
+  pitchUm: 10,
   wavelengthNm: { default: 550, min: 380, max: 750 },
   f1Mm: { default: 100, min: 25, max: 250 },
   f2Mm: { default: 100, min: 25, max: 250 },
@@ -63,15 +62,15 @@ export const GRATING_PARAMETERS = {
   displayedHarmonics: 7,
 } as const;
 
-/** Aperture dimensions in object samples. */
+/** Screen 2 aperture lengths in µm, with the inner radius expressed as a percentage. */
 export const APERTURE_PARAMETERS = {
-  width: { default: 24, min: 2, max: 96 },
-  height: { default: 72, min: 8, max: 180 },
-  separation: { default: 32, min: 4, max: 56 },
-  radius: { default: 18, min: 2, max: 72 },
+  width: { default: 240, min: 20, max: 960 },
+  height: { default: 720, min: 80, max: 1800 },
+  separation: { default: 320, min: 40, max: 560 },
+  radius: { default: 180, min: 20, max: 720 },
   innerRatio: { default: 55, min: 5, max: 95 },
-  period: { default: 20, min: 4, max: 64 },
-  thickness: { default: 12, min: 2, max: 32 },
+  period: { default: 200, min: 40, max: 640 },
+  thickness: { default: 120, min: 20, max: 320 },
 } as const;
 
 /** Comparison objects use fixed sizes in samples so the two shapes read clearly side by side. */
@@ -88,13 +87,12 @@ export const PHASE_COMPARISON_DIMENSIONS = {
 /** Exposure window in decibels below peak intensity. */
 export const EXPOSURE_DB = { default: 50, min: 10, max: 100 } as const;
 
-/** View dimensions in layout pixels, except the two crops (FFT bins). */
+/** View dimensions in layout pixels, except the spectrum crop (FFT bins). */
 export const OPTICS_LAYOUT = {
   gap: 14,
   smallGap: 6,
   fieldSize: 226,
   spectrumBins: 144,
-  focalBins: 80,
   swapImageSize: 176,
   controlWidth: 226,
   trackWidth: 110,
@@ -151,5 +149,34 @@ export const RESOLUTION_CHOICES = [256, 512, 1024] as const;
 export const DEFAULT_CPU_RESOLUTION = RESOLUTION_CHOICES[0];
 export const DEFAULT_GPU_RESOLUTION = RESOLUTION_CHOICES[1];
 export const MAX_CPU_RESOLUTION = RESOLUTION_CHOICES[1];
-export const SPECTRUM_ZOOMS = [1, 2, 4, 8] as const;
+export const SPECTRUM_ZOOMS = [1, 2, 4, 8, 16, 32] as const;
 export type SpectrumZoom = (typeof SPECTRUM_ZOOMS)[number];
+
+/** Wait for eight completed GPU submissions before assessing steady device responsiveness. */
+export const AUTO_GPU_SAMPLE_COUNT = 8;
+export const AUTO_GPU_MEDIAN_LIMIT_MS = 30;
+export const FOCAL_VIEW_MM = { default: 1.65, min: 0.05, max: 19, step: 0.05 } as const;
+export const APERTURE_VIEW_UM = { min: 160, comparison: 1200, margin: 3.3 } as const;
+export const SCREEN_ICONS = {
+  width: 548,
+  height: 373,
+  stroke: 20,
+  span: 190,
+  offset: 116,
+  aperture: 128,
+  dot: 24,
+} as const;
+export const AIRY_FIFTH_ZERO_OVER_PI = 5.24;
+export const APERTURE_FIT_FRINGE_COUNT = 5;
+export const MICROMETERS_PER_MILLIMETER = 1000;
+export const OBJECT_SPECTRUM_ZOOM = {
+  letterF: 16,
+  grating: 4,
+  mesh: 4,
+  letterMesh: 4,
+  phaseDisk: 32,
+  sinusoids: 2,
+} as const;
+export const RESOLUTION_TARGET_SPECTRUM_ZOOM = 2;
+export const MASK_EDIT_SPECTRUM_ZOOM = 2;
+export const MASK_PRESET_SPECTRUM_ZOOM = 4;

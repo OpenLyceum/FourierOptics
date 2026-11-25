@@ -1,5 +1,5 @@
 import type { BooleanProperty, NumberProperty, Property, TReadOnlyProperty } from "scenerystack/axon";
-import { Dimension2 } from "scenerystack/dot";
+import { Dimension2, type Range } from "scenerystack/dot";
 import { type Node, Text, type TextOptions, VBox } from "scenerystack/scenery";
 import { NumberControl, PhetFont } from "scenerystack/scenery-phet";
 import { AquaRadioButtonGroup, Checkbox, ComboBox } from "scenerystack/sun";
@@ -21,9 +21,17 @@ export function heading(property: TReadOnlyProperty<string>, maxWidth: number): 
   return label(property, { font: new PhetFont({ size: L.titleFontSize, weight: "bold" }), maxWidth });
 }
 
-export function numberControl(name: TReadOnlyProperty<string>, property: NumberProperty, delta = 1): NumberControl {
+export function numberControl(
+  name: TReadOnlyProperty<string>,
+  property: NumberProperty,
+  delta = 1,
+  help = StringManager.getInstance().getCommonStrings().sliderHelpStringProperty,
+  enabledRangeProperty?: TReadOnlyProperty<Range>,
+): NumberControl {
   return new NumberControl(name, property, property.range, {
     accessibleName: name,
+    accessibleHelpText: help,
+    enabledRangeProperty,
     delta,
     titleNodeOptions: {
       fill: Colors.textColorProperty,
@@ -49,6 +57,7 @@ export function numberControl(name: TReadOnlyProperty<string>, property: NumberP
 export function checkbox(name: TReadOnlyProperty<string>, property: BooleanProperty): Checkbox {
   return new Checkbox(property, label(name, { maxWidth: L.controlWidth - L.gap * 2 }), {
     accessibleName: name,
+    accessibleHelpText: StringManager.getInstance().getCommonStrings().checkboxHelpStringProperty,
     boxWidth: L.labelFontSize,
     spacing: L.smallGap,
     checkboxColor: Colors.textColorProperty,
@@ -77,6 +86,7 @@ export function combo<T>(
     {
       ...FOURIER_OPTICS_COMBO_BOX_OPTIONS,
       accessibleName: name,
+      accessibleHelpText: StringManager.getInstance().getCommonStrings().comboHelpStringProperty,
     },
   );
   return new VBox({
@@ -93,12 +103,18 @@ export function zoomControl(property: Property<SpectrumZoom>): VBox {
     strings.zoom2StringProperty,
     strings.zoom4StringProperty,
     strings.zoom8StringProperty,
+    strings.zoom16StringProperty,
+    strings.zoom32StringProperty,
   ];
   const group = new AquaRadioButtonGroup(
     property,
     SPECTRUM_ZOOMS.map((value, index) => {
       const name = labels[index] ?? strings.zoom1StringProperty;
-      return { value, createNode: () => label(name), options: { accessibleName: name } };
+      return {
+        value,
+        createNode: () => label(name),
+        options: { accessibleName: name, accessibleHelpText: strings.zoomHelpStringProperty },
+      };
     }),
     {
       accessibleName: strings.zoomStringProperty,

@@ -83,12 +83,6 @@ const FourierOpticsColors = {
     projector: "#ffffff",
   }),
 
-  /** Fill of a disabled control surface (grayed-out editable input field). */
-  controlSurfaceDisabledColorProperty: new ProfileColorProperty(FourierOpticsNamespace, "controlSurfaceDisabled", {
-    default: "#cccccc",
-    projector: "#cccccc",
-  }),
-
   /** Text on light control surfaces: combo items, flat-button labels, field values, preferences. */
   controlSurfaceTextColorProperty: new ProfileColorProperty(FourierOpticsNamespace, "controlSurfaceText", {
     default: "#1a1a1a",
@@ -117,6 +111,15 @@ const FourierOpticsColors = {
   thirdGratingColorProperty: new ProfileColorProperty(FourierOpticsNamespace, "thirdGrating", {
     default: "#f4a5ed",
     projector: "#f4a5ed",
+  }),
+  negativePhaseColorProperty: new ProfileColorProperty(FourierOpticsNamespace, "negativePhase", {
+    default: "#4367ae",
+  }),
+  zeroPhaseColorProperty: new ProfileColorProperty(FourierOpticsNamespace, "zeroPhase", {
+    default: "#b8b8b8",
+  }),
+  positivePhaseColorProperty: new ProfileColorProperty(FourierOpticsNamespace, "positivePhase", {
+    default: "#af522d",
   }),
   maskShadeColorProperty: new ProfileColorProperty(FourierOpticsNamespace, "maskShade", {
     default: "#7485ad",

@@ -11,18 +11,24 @@ export type GpuContext = {
   layout: GPUBindGroupLayout;
   pipelines: Record<Kernel, GPUComputePipeline>;
   maxGridSize: number;
+  fallback: boolean;
 };
 
 export const gpuContextProperty = new Property<GpuContext | null>(null);
-let initialization: Promise<void> | undefined;
+let initialization: Promise<boolean> | undefined;
+let forcedInitialization: Promise<boolean> | undefined;
 
 /** One acquisition for the simulation. Explicit CPU startup does not probe WebGPU. */
-export function initializeGpuContext(forceCpu: boolean): Promise<void> {
-  if (forceCpu) {
-    return Promise.resolve();
+export async function initializeGpuContext(backend: "auto" | "cpu" | "gpu"): Promise<void> {
+  if (backend === "cpu") {
+    return;
   }
-  initialization ??= acquire();
-  return initialization;
+  initialization ??= acquire(backend === "gpu");
+  const skippedFallback = await initialization;
+  if (backend === "gpu" && skippedFallback) {
+    forcedInitialization ??= acquire(true);
+    await forcedInitialization;
+  }
 }
 
 export function demoteGpuContext(context: GpuContext): void {
@@ -32,11 +38,12 @@ export function demoteGpuContext(context: GpuContext): void {
   }
 }
 
-async function acquire(): Promise<void> {
-  const device = await requestWebGpuDevice();
-  if (!device) {
-    return;
+async function acquire(allowFallback: boolean): Promise<boolean> {
+  const result = await requestWebGpuDevice(allowFallback);
+  if (!result || result === "fallback") {
+    return result === "fallback";
   }
+  const { device, fallback } = result;
   let lost = false;
   device.lost.then(() => {
     lost = true;
@@ -50,7 +57,7 @@ async function acquire(): Promise<void> {
     const maxGridSize = 2 ** Math.floor(Math.log2(Math.sqrt(maxBytes / 32)));
     if (maxGridSize < 256) {
       device.destroy();
-      return;
+      return false;
     }
     const layout = device.createBindGroupLayout({
       entries: (["read-only-storage", "read-only-storage", "storage", "storage", "uniform"] as const).map(
@@ -74,7 +81,7 @@ async function acquire(): Promise<void> {
       compile("display"),
     ]);
     if (!lost) {
-      const context = { device, layout, pipelines: { fft, field, reduce, display }, maxGridSize };
+      const context = { device, layout, pipelines: { fft, field, reduce, display }, maxGridSize, fallback };
       device.addEventListener("uncapturederror", (event) => {
         event.preventDefault();
         // biome-ignore lint/suspicious/noConsole: Preserve the WebGPU diagnostic when a driver falls back.
@@ -88,4 +95,5 @@ async function acquire(): Promise<void> {
     // biome-ignore lint/suspicious/noConsole: Report the driver or shader diagnostic before CPU fallback.
     console.info("Fourier Optics WebGPU initialization failed", error);
   }
+  return false;
 }

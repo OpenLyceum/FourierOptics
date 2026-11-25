@@ -2,6 +2,7 @@ import { DerivedProperty } from "scenerystack/axon";
 import { toFixed } from "scenerystack/dot";
 import { StringUtils } from "scenerystack/phetcommon";
 import { ScreenSummaryContent } from "scenerystack/sim";
+import { backendDescription } from "../../common/view/backendStatus.js";
 import { StringManager } from "../../i18n/StringManager.js";
 import type { FourFOpticalSystemModel } from "../model/FourFOpticalSystemModel.js";
 
@@ -40,12 +41,23 @@ export class FourFOpticalSystemScreenSummaryContent extends ScreenSummaryContent
         });
       },
     );
+    const backend = backendDescription(model);
     super({
       playAreaContent: a11y.screenSummary.playAreaStringProperty,
       controlAreaContent: a11y.screenSummary.controlAreaStringProperty,
-      currentDetailsContent: details,
+      currentDetailsContent: [details, backend],
       interactionHintContent: a11y.screenSummary.interactionHintStringProperty,
     });
-    this.disposeEmitter.addListener(() => details.dispose());
+    const announceCutoff = (passed: boolean) => {
+      if (model.objectProperty.value === "resolutionTarget") {
+        this.addAccessibleContextResponse(passed ? a11y.finestPassedStringProperty : a11y.finestBlockedStringProperty);
+      }
+    };
+    model.finestBarsInPassbandProperty.lazyLink(announceCutoff);
+    this.disposeEmitter.addListener(() => {
+      model.finestBarsInPassbandProperty.unlink(announceCutoff);
+      details.dispose();
+      backend.dispose();
+    });
   }
 }

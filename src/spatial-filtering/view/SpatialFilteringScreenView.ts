@@ -1,6 +1,6 @@
 import { DerivedProperty, Multilink, PatternStringProperty } from "scenerystack/axon";
 import { toFixed } from "scenerystack/dot";
-import { HBox, Node, RichText, VBox } from "scenerystack/scenery";
+import { HBox, LinearGradient, Node, Rectangle, RichText, VBox } from "scenerystack/scenery";
 import { PhetFont, ResetAllButton } from "scenerystack/scenery-phet";
 import { ScreenView, type ScreenViewOptions } from "scenerystack/sim";
 import { FLAT_RESET_ALL_BUTTON_OPTIONS } from "../../common/FourierOpticsButtonOptions.js";
@@ -13,7 +13,12 @@ import { FrameRecomputeScheduler } from "../../common/view/FrameRecomputeSchedul
 import { MaskEditorNode } from "../../common/view/MaskEditorNode.js";
 import { zoomCrop } from "../../common/view/spectrumZoom.js";
 import Colors from "../../FourierOpticsColors.js";
-import { IMAGING_LAYOUT as I, OPTICS_LAYOUT as L, SCREEN_VIEW_MARGIN } from "../../FourierOpticsConstants.js";
+import {
+  FILTER_PARAMETERS,
+  IMAGING_LAYOUT as I,
+  OPTICS_LAYOUT as L,
+  SCREEN_VIEW_MARGIN,
+} from "../../FourierOpticsConstants.js";
 import { StringManager } from "../../i18n/StringManager.js";
 import { FILTER_KINDS, FILTER_PRESETS, type SpatialFilteringModel } from "../model/SpatialFilteringModel.js";
 import { SpatialFilteringScreenSummaryContent } from "./SpatialFilteringScreenSummaryContent.js";
@@ -32,12 +37,6 @@ export class SpatialFilteringScreenView extends ScreenView {
     const captions = manager.getFilterCaptions();
     const transform = manager.getTransformStrings();
 
-    const presetZoom = (value: typeof model.presetProperty.value) => {
-      if (value !== "custom") {
-        model.zoomProperty.value = value === "phaseContrast" || value === "darkField" ? 4 : 2;
-      }
-    };
-    model.presetProperty.link(presetZoom);
     const object = new FieldImageNode(I.fieldSize);
     const spectrum = new FieldImageNode(I.fieldSize);
     const result = new FieldImageNode(I.fieldSize);
@@ -111,11 +110,26 @@ export class SpatialFilteringScreenView extends ScreenView {
       [model.objectProperty, common.objectStringProperty, strings.phaseObjectStringProperty],
       (kind, normal, phase) => (kind === "phaseDisk" ? phase : normal),
     );
+    const phaseScaleProperty = new PatternStringProperty(strings.phaseScaleStringProperty, {
+      limit: FILTER_PARAMETERS.weakPhase,
+    });
+    const phaseLegend = new VBox({
+      spacing: L.smallGap / 2,
+      children: [
+        new Rectangle(0, 0, L.scaleBarWidth, L.smallGap, {
+          fill: new LinearGradient(0, 0, L.scaleBarWidth, 0)
+            .addColorStop(0, Colors.negativePhaseColorProperty)
+            .addColorStop(0.5, Colors.zeroPhaseColorProperty)
+            .addColorStop(1, Colors.positivePhaseColorProperty),
+        }),
+        label(phaseScaleProperty, { tagName: "p" }),
+      ],
+    });
     const panels = new HBox({
       align: "top",
       spacing: L.gap,
       children: [
-        imagePanel(objectHeadingProperty, object),
+        imagePanel(objectHeadingProperty, object, phaseLegend),
         imagePanel(strings.fourierPlaneStringProperty, new Node({ children: [spectrum, editor] })),
         imagePanel(
           strings.reconstructedStringProperty,
@@ -142,6 +156,7 @@ export class SpatialFilteringScreenView extends ScreenView {
     });
     const reset = new ResetAllButton({
       ...FLAT_RESET_ALL_BUTTON_OPTIONS,
+      accessibleHelpText: manager.getCommonStrings().resetHelpStringProperty,
       right: this.layoutBounds.maxX - SCREEN_VIEW_MARGIN,
       bottom: this.layoutBounds.maxY - SCREEN_VIEW_MARGIN,
       listener: () => {
@@ -161,19 +176,22 @@ export class SpatialFilteringScreenView extends ScreenView {
       brush.visible = kind === "painted";
     };
     model.filterProperty.link(showBrush);
+    const updateLegend = (kind: typeof model.objectProperty.value) => {
+      phaseLegend.visible = kind === "phaseDisk";
+    };
+    model.objectProperty.link(updateLegend);
     this.scheduler = new FrameRecomputeScheduler(
       model.inputsChangedEmitter,
       () =>
         model.submit((ops) => {
           const transmission = model.recompute(ops, true);
           const readout = model.capturePower(ops);
-          const crop = zoomCrop(I.filterBins, model.zoomProperty.value);
+          const crop = zoomCrop(I.filterBins, model.zoomProperty.value, model.size);
           const mode = model.phaseProperty.value ? "phase" : model.logProperty.value ? "log" : "intensity";
-          const paintObject = object.capture(
-            ops,
-            model.object,
-            model.objectProperty.value === "phaseDisk" ? "phase" : "intensity",
-          );
+          const paintObject =
+            model.objectProperty.value === "phaseDisk"
+              ? () => object.paintObjectPhase(model.object, FILTER_PARAMETERS.weakPhase)
+              : object.capture(ops, model.object, "intensity");
           const paintSpectrum = spectrum.capture(ops, model.spectrum, mode, crop);
           const paintResult = result.capture(ops, model.reconstructed, "intensity");
           const mask = model.getMask();
@@ -194,7 +212,8 @@ export class SpatialFilteringScreenView extends ScreenView {
       this.scheduler.dispose();
       model.filterProperty.unlink(showBrush);
       displayLink.dispose();
-      model.presetProperty.unlink(presetZoom);
+      model.objectProperty.unlink(updateLegend);
+      phaseScaleProperty.dispose();
       objectHeadingProperty.dispose();
       powerLabelProperty.dispose();
       powerProperty.dispose();

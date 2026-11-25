@@ -8,20 +8,20 @@ Fields use row-major interleaved Float32Array samples in real, imaginary order. 
 
 The raw forward FFT uses $e^{-2\pi i(k_xx+k_yy)/N}$ with unit scale. The inverse has the positive exponent and divides by $N^2$ in 2D. The engine applies ifftshift before a raw transform and fftshift after it. DC is therefore at the centre, a positive complex tilt appears at positive frequency, and the Nyquist bin occupies the negative edge on each axis.
 
-Aperture lengths are measured in samples. Hard aperture edges average complex transmission over a 4×4 subpixel grid. A phase disk transmits $e^{i\varphi}$ inside and 1 outside. Smooth gratings are sampled at grid points as $b[1+\sum_j c_j\cos(2\pi(x\cos\theta_j+y\sin\theta_j)/p_j+\phi_j)]$ with up to three terms. Fourier mask radii and slit widths are measured in bins. Masks are sampled at bin centres, and composed masks multiply their complex transmissions. A slit angle points along its normal.
+The numerical rasterizer takes lengths in samples. On the Fourier Transform screen, the aperture controls specify lengths in µm, which the model divides by the fixed 10 µm sample pitch. Increasing $N$ adds surrounding grid area for finite apertures and reduces the frequency-bin spacing while preserving aperture size. Slits and gratings that extend across the periodic grid keep their widths or periods. Hard aperture edges average complex transmission over a 4×4 subpixel grid. A phase disk transmits $e^{i\varphi}$ inside and 1 outside. Smooth gratings are sampled at grid points as $b[1+\sum_j c_j\cos(2\pi(x\cos\theta_j+y\sin\theta_j)/p_j+\phi_j)]$ with up to three terms. Fourier mask radii and slit widths are measured in bins. Masks are sampled at bin centres, and composed masks multiply their complex transmissions. A slit angle points along its normal.
 
 ## Physical scales
 
 | Quantity | API unit | Default | Suggested control range |
 |---|---|---:|---:|
 | Grid size $N$ | Samples per side | 256 | Powers of two, 64–1024 |
-| Grid pitch $\Delta x$ | µm | 10 | 1–25 |
+| Grid pitch $\Delta x$ | µm | 10 | Fixed in the simulation |
 | Wavelength $\lambda$ | nm | 550 | 380–750 |
 | Focal lengths $f_1, f_2$ | mm | 100 each | 25–250 |
 | Iris diameter $D$ | mm | 2 | 0–10 |
 | Propagation distance $\Delta z$ | mm | — | Signed |
 
-Spatial frequency is measured in cycles/µm, with bin spacing $\Delta\nu=1/(N\Delta x)$. With wavelength converted to µm, $x_f=\lambda f\nu$ gives the focal-plane coordinate in mm. The pupil radius in bins is $\nu_c/\Delta\nu$, where $\nu_c=D/(2\lambda f_1)$ is the object-side coherent cutoff. The limiting coherent period is $1/\nu_c$, and the incoherent cutoff is $2\nu_c$.
+Spatial frequency is measured in cycles/µm, with bin spacing $\Delta\nu=1/(N\Delta x)$. With wavelength converted to µm, $x_f=\lambda f\nu$ gives the focal-plane coordinate in mm. The displayed focal span is the crop width in bins multiplied by $\lambda f\Delta\nu$. Its maximum is the full sampled span $\lambda f/\Delta x$. The default circle has a radius of 180 µm. At 550 nm and 100 mm focal length, about five Airy minima fit along the radius of the 1.65 mm default view. The pupil radius in bins is $\nu_c/\Delta\nu$, where $\nu_c=D/(2\lambda f_1)$ is the object-side coherent cutoff. The limiting coherent period is $1/\nu_c$, and the incoherent cutoff is $2\nu_c$.
 
 ## Propagation and imaging
 

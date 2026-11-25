@@ -13,7 +13,7 @@ test("WebGPU matches the reference transform and 4f imaging", async ({ page }) =
     if (!adapter) {
       return { noAdapter: true } as const;
     }
-    await initializeGpuContext(false);
+    await initializeGpuContext("gpu");
     const context = gpuContextProperty.value;
     if (!context) {
       throw new Error("A WebGPU adapter was present, but Fourier Optics could not initialize its pipelines.");

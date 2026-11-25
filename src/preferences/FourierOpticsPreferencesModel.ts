@@ -12,6 +12,7 @@ export class FourierOpticsPreferencesModel {
   public readonly backendProperty: Property<BackendChoice>;
   public readonly resolutionProperty: Property<ResolutionChoice>;
   public readonly noticeDismissedProperty = new BooleanProperty(false);
+  public readonly gpuTooSlowProperty = new BooleanProperty(false);
   public readonly timing = query.timing;
 
   public constructor(tandem?: Tandem) {
@@ -27,7 +28,7 @@ export class FourierOpticsPreferencesModel {
     });
     this.backendProperty.lazyLink((backend) => {
       if (backend !== "cpu") {
-        initializeGpuContext(false).catch(() => undefined);
+        initializeGpuContext(backend).catch(() => undefined);
       }
     });
   }

@@ -1,8 +1,7 @@
 import { DerivedProperty } from "scenerystack/axon";
 import { StringUtils } from "scenerystack/phetcommon";
 import { ScreenSummaryContent } from "scenerystack/sim";
-import { zoomCrop } from "../../common/view/spectrumZoom.js";
-import { OPTICS_LAYOUT as L } from "../../FourierOpticsConstants.js";
+import { backendDescription } from "../../common/view/backendStatus.js";
 import { StringManager } from "../../i18n/StringManager.js";
 import { APERTURE_DIMENSIONS, type FourierTransformModel } from "../model/FourierTransformModel.js";
 
@@ -20,10 +19,8 @@ export class FourierTransformScreenSummaryContent extends ScreenSummaryContent {
         model.objectBProperty,
         model.wavelengthProperty,
         model.focalLengthProperty,
-        model.pitchProperty,
         model.focalStepProperty,
-        model.sizeProperty,
-        model.zoomProperty,
+        model.focalCropProperty,
         ...Object.values(model.dimensions),
         ...Object.values(apertures),
         ...Object.values(dimensions),
@@ -45,19 +42,21 @@ export class FourierTransformScreenSummaryContent extends ScreenSummaryContent {
             .join(" "),
           wavelength: model.wavelengthProperty.value,
           focalLength: model.focalLengthProperty.value,
-          pitch: model.pitchProperty.value,
-          span: (
-            model.focalStepProperty.value * zoomCrop(L.focalBins, model.zoomProperty.value, model.size)
-          ).toPrecision(3),
+          pitch: model.pitchUm,
+          span: (model.focalStepProperty.value * model.focalCropProperty.value).toPrecision(3),
         });
       },
     );
+    const backend = backendDescription(model);
     super({
       playAreaContent: a11y.screenSummary.playAreaStringProperty,
       controlAreaContent: a11y.screenSummary.controlAreaStringProperty,
-      currentDetailsContent: detailsProperty,
+      currentDetailsContent: [detailsProperty, backend],
       interactionHintContent: a11y.screenSummary.interactionHintStringProperty,
     });
-    this.disposeEmitter.addListener(() => detailsProperty.dispose());
+    this.disposeEmitter.addListener(() => {
+      detailsProperty.dispose();
+      backend.dispose();
+    });
   }
 }

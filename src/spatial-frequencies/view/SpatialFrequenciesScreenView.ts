@@ -180,6 +180,7 @@ export class SpatialFrequenciesScreenView extends ScreenView {
     );
     const reset = new ResetAllButton({
       ...FLAT_RESET_ALL_BUTTON_OPTIONS,
+      accessibleHelpText: manager.getCommonStrings().resetHelpStringProperty,
       right: this.layoutBounds.maxX - SCREEN_VIEW_MARGIN,
       bottom: this.layoutBounds.maxY - SCREEN_VIEW_MARGIN,
       listener: () => {

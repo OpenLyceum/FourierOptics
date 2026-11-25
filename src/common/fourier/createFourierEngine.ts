@@ -6,11 +6,12 @@ import type { FourierEngine } from "./FourierEngine.js";
 import { gpuContextProperty } from "./gpu/GpuContext.js";
 import { WebGpuFourierEngine } from "./gpu/WebGpuFourierEngine.js";
 
-type Request = { backend: BackendChoice; resolution: ResolutionChoice };
+type Request = { backend: BackendChoice; resolution: ResolutionChoice; gpuTooSlow?: boolean };
 export type FourierEngineInfo = {
   backend: FourierEngine["backend"];
   size: number;
   degraded: boolean;
+  gpuTooSlow?: boolean;
 };
 
 /** Numeric calls keep the direct CPU reference API for numerical clients. */
@@ -23,14 +24,18 @@ export function createFourierEngine(
     return new CpuFourierEngine(request);
   }
 
-  const context = request.backend === "cpu" ? null : gpuContextProperty.value;
-  if (context) {
+  const context = gpuContextProperty.value;
+  const gpuTooSlow = request.backend === "auto" && request.gpuTooSlow;
+  if (context && (request.backend === "gpu" || (request.backend === "auto" && !context.fallback && !gpuTooSlow))) {
     const size = Math.min(request.resolution || DEFAULT_GPU_RESOLUTION, context.maxGridSize);
     return { engine: new WebGpuFourierEngine(size, context), info: { backend: "webgpu", size, degraded: false } };
   }
-  const size = Math.min(request.resolution || DEFAULT_CPU_RESOLUTION, MAX_CPU_RESOLUTION);
+  const size = Math.min(
+    (gpuTooSlow ? DEFAULT_CPU_RESOLUTION : request.resolution) || DEFAULT_CPU_RESOLUTION,
+    MAX_CPU_RESOLUTION,
+  );
   return {
     engine: new CpuFourierEngine(size),
-    info: { backend: "cpu", size, degraded: request.backend !== "cpu" },
+    info: { backend: "cpu", size, degraded: request.backend !== "cpu", ...(gpuTooSlow && { gpuTooSlow }) },
   };
 }

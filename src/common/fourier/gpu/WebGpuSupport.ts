@@ -1,10 +1,16 @@
 /// <reference types="@webgpu/types" />
 
 // Adapted from OpenLyceum/HeatTransfer's common/field/gpu/WebGpuSupport.ts.
-export async function requestWebGpuDevice(): Promise<GPUDevice | null> {
+export async function requestWebGpuDevice(
+  allowFallback: boolean,
+): Promise<{ device: GPUDevice; fallback: boolean } | "fallback" | null> {
   try {
-    const adapter = await globalThis.navigator?.gpu?.requestAdapter({ powerPreference: "high-performance" });
-    return (await adapter?.requestDevice()) ?? null;
+    const adapter = await globalThis.navigator?.gpu?.requestAdapter();
+    if (!adapter) {
+      return null;
+    }
+    const fallback = adapter.info?.isFallbackAdapter === true;
+    return fallback && !allowFallback ? "fallback" : { device: await adapter.requestDevice(), fallback };
   } catch {
     return null;
   }

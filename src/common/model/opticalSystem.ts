@@ -1,4 +1,10 @@
+import { roundSymmetric } from "scenerystack/dot";
 import { ComplexField } from "./ComplexField.js";
+
+/** Round to a centered crop with an integer sample index at its first pixel. */
+export function evenCrop(bins: number, size: number): number {
+  return Math.max(2, Math.min(size, 2 * roundSymmetric(bins / 2)));
+}
 
 /** Frequency spacing in cycles/µm for a sample pitch in µm. */
 export function spatialFrequencyStep(size: number, pitchUm: number): number {

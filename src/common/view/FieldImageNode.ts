@@ -1,5 +1,6 @@
-import { Bounds2 } from "scenerystack/dot";
+import { Bounds2, clamp } from "scenerystack/dot";
 import { CanvasNode } from "scenerystack/scenery";
+import Colors from "../../FourierOpticsColors.js";
 import { EXPOSURE_DB } from "../../FourierOpticsConstants.js";
 import type { FieldDisplayMode, FourierOperations } from "../fourier/FourierEngine.js";
 import type { ComplexField } from "../model/ComplexField.js";
@@ -42,6 +43,31 @@ export class FieldImageNode extends CanvasNode {
       }
       this.invalidatePaint();
     };
+  }
+
+  /** The input object already lives on the CPU, including when its transform runs on the GPU. */
+  public paintObjectPhase(field: ComplexField, phaseLimit: number): void {
+    if (!this.sampleContext) {
+      return;
+    }
+    this.resize(field.size);
+    this.imageData ??= this.sampleContext.createImageData(field.size, field.size);
+    const pixels = this.imageData.data;
+    const zero = Colors.zeroPhaseColorProperty.value;
+    const negative = Colors.negativePhaseColorProperty.value;
+    const positive = Colors.positivePhaseColorProperty.value;
+    for (let i = 0; i < field.data.length; i += 2) {
+      const phase = Math.atan2(field.data[i + 1] ?? 0, field.data[i] ?? 0);
+      const endpoint = phase < 0 ? negative : positive;
+      const amount = clamp(Math.abs(phase) / phaseLimit, 0, 1);
+      const pixel = 2 * i;
+      pixels[pixel] = zero.red + amount * (endpoint.red - zero.red);
+      pixels[pixel + 1] = zero.green + amount * (endpoint.green - zero.green);
+      pixels[pixel + 2] = zero.blue + amount * (endpoint.blue - zero.blue);
+      pixels[pixel + 3] = 255;
+    }
+    this.sampleContext.putImageData(this.imageData, 0, 0);
+    this.invalidatePaint();
   }
 
   private resize(crop: number): void {

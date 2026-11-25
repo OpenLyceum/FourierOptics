@@ -17,12 +17,12 @@
       "barsDetails": "Les bandes en créneau se répètent tous les {{period}} échantillons. Les quatre premières amplitudes relatives non nulles valent 1, un tiers, un cinquième et un septième.",
       "handle": "Poignée de fréquence pour {{readout}}",
       "handleHelp": "Déplacez avec les flèches ou W, A, S, D. Maintenez Maj pour un réglage plus fin.",
-      "handleHelpHeading": "Déplacer les poignées de fréquence"
+      "handleHelpHeading": "Déplacer les poignées de fréquence des trois réseaux"
     },
     "fourierTransform": {
       "screenSummary": {
         "playArea": "Le schéma montre une onde plane, une ouverture, une lentille et le plan focal arrière. En dessous figurent l’ouverture et sa figure de diffraction avec une coupe centrale.",
-        "controlArea": "Choisissez une ouverture et ses dimensions. Réglez la longueur d’onde, la distance focale et le pas de la grille, ou ouvrez la comparaison par échange de phase.",
+        "controlArea": "Choisissez une ouverture et ses dimensions. Réglez la longueur d’onde, la distance focale et le champ dans le plan focal, cadrez la figure ou ouvrez la comparaison par échange de phase.",
         "interactionHint": "Essayez de rétrécir l’ouverture pour élargir la figure, ou échangez les phases de deux objets et comparez leurs reconstructions."
       },
       "currentDetails": "Ouverture : {{aperture}}. {{dimensions}} Longueur d’onde de {{wavelength}} nanomètres. Distance focale de {{focalLength}} millimètres. Pas de {{pitch}} micromètres. L’image focale couvre {{span}} millimètres.",
@@ -34,16 +34,22 @@
         "controlArea": "Choisissez un objet, un filtre ou un préréglage. Déplacez les poignées du masque ou peignez et effacez des cases du plan de Fourier.",
         "interactionHint": "Essayez le préréglage Abbe–Porter pour supprimer les lignes horizontales de la grille."
       },
-      "currentDetails": "Objet {{object}}. Filtre {{filter}}. Puissance transmise : {{power}} pour cent. {{effect}}",
+      "currentDetails": "Objet {{object}}. Filtre {{filter}}. Puissance transmise : {{power}} pour cent. {{effect}} {{cutoff}}",
       "radius": "Poignée du rayon extérieur du masque",
       "innerRadius": "Poignée du rayon intérieur du masque",
       "slitWidth": "Poignée de la largeur de la fente",
       "slitAngle": "Poignée de l’angle de la fente",
       "dragHelp": "Déplacez avec les flèches. Maintenez Maj pour un déplacement plus précis.",
-      "moveHeading": "Déplacer les poignées ou le curseur du pinceau",
       "brush": "Curseur du pinceau du masque de Fourier",
       "brushHelp": "Déplacez avec les flèches. Appuyez sur Espace ou Entrée pour peindre ou effacer à la position du curseur.",
-      "stamp": "Peindre ou effacer à la position du curseur"
+      "stamp": "Peindre ou effacer à la position du curseur",
+      "filterChanged": "Filtre {{filter}} sélectionné. {{effect}}",
+      "phaseContrastOn": "Contraste de phase activé. Le point de phase décale l’ordre zéro de plus pi sur deux radians.",
+      "phaseContrastOff": "Contraste de phase désactivé.",
+      "radialCutoff": "Rayon du masque de {{radius}} cases.",
+      "bandCutoff": "Le masque laisse passer les rayons de {{inner}} à {{outer}} cases.",
+      "slitCutoff": "Largeur de fente de {{width}} cases. Sa normale est à {{angle}} degrés.",
+      "handleList": "Déplacer le rayon extérieur, le rayon intérieur, la largeur ou l’angle de la fente, ou le curseur du pinceau"
     },
     "fourFOpticalSystem": {
       "screenSummary": {
@@ -53,7 +59,10 @@
       },
       "currentDetails": "Objet {{object}}. Éclairage {{light}}. Grandissement {{magnification}}. Diamètre de l’iris : {{diameter}} millimètres. Défocalisation : {{defocus}} millimètres. Coupure : {{cutoff}} cycles par micromètre.",
       "iris": "Poignée de l’ouverture de l’iris",
-      "irisHelp": "Déplacez vers le haut pour ouvrir l’iris ou vers le bas pour le fermer. Maintenez Maj pour un déplacement plus précis."
+      "irisHelp": "Déplacez vers le haut pour ouvrir l’iris ou vers le bas pour le fermer. Maintenez Maj pour un déplacement plus précis.",
+      "finestPassed": "Le groupe de bandes le plus fin se trouve dans la bande passante optique.",
+      "finestBlocked": "Le groupe de bandes le plus fin dépasse la fréquence de coupure optique.",
+      "illuminationHelp": "Choisissez un éclairage cohérent ou incohérent avec les flèches."
     }
   },
   "preferences": {
@@ -75,11 +84,26 @@
     "zoom8": "×8",
     "resolution256": "256²",
     "resolution512": "512²",
-    "resolution1024": "1024²"
+    "resolution1024": "1024²",
+    "tooSlow": "Le GPU est trop lent sur cet appareil. La simulation utilise le processeur.",
+    "zoom16": "×16",
+    "zoom32": "×32",
+    "zoomHelp": "Choisissez le cadrage du spectre de Fourier.",
+    "backendHelp": "Choisissez comment exécuter les calculs de Fourier.",
+    "resolutionHelp": "Choisissez le nombre d’échantillons par côté de la grille.",
+    "keyboardHelp": "Dans les préférences, ouvrez Simulation pour choisir le moteur de calcul ou la résolution de la grille. Utilisez les flèches dans chaque groupe.",
+    "zoomKeyboardHelp": "Dans le zoom du spectre, utilisez les flèches pour modifier le cadrage.",
+    "dismissHelp": "Masquez ce message pour le reste de la session.",
+    "backendAndResolution": "Calcul et grille dans les préférences",
+    "keyboardHelpHeading": "Affichage et calcul"
   },
   "common": {
     "object": "Objet",
-    "exposure": "Plage log. (dB)"
+    "exposure": "Plage log. (dB)",
+    "sliderHelp": "Utilisez les flèches pour régler la valeur.",
+    "checkboxHelp": "Appuyez sur Espace pour modifier ce réglage.",
+    "comboHelp": "Ouvrez la liste et utilisez les flèches pour trouver une option.",
+    "resetHelp": "Rétablissez les réglages initiaux de cet écran."
   },
   "spatial": {
     "spectrum": "Spectre de Fourier · log |F|",
@@ -110,7 +134,6 @@
     "distance": "f = {{value}} mm",
     "wavelength": "Longueur d’onde (nm)",
     "focalLength": "Distance focale (mm)",
-    "pitch": "Pas de la grille (µm)",
     "log": "Intensité logarithmique",
     "phase": "Phase en couleur",
     "tint": "Teinte spectrale",
@@ -126,7 +149,10 @@
     "profile": "Coupe horizontale centrale · intensité relative",
     "narrower": "Une ouverture plus étroite élargit la figure de diffraction.",
     "micrometers": "{{value}} µm",
-    "millimeters": "{{value}} mm"
+    "fieldOfView": "Champ dans le plan focal (mm)",
+    "fieldOfViewHelp": "Réglez la largeur affichée dans le plan focal. L’échantillonnage peut limiter la largeur disponible.",
+    "fitPattern": "Cadrer la figure",
+    "fitPatternHelp": "Cadrez la figure de diffraction selon l’ouverture, la longueur d’onde et la distance focale actuelles."
   },
   "apertures": {
     "slit": "Fente",
@@ -139,13 +165,13 @@
     "letterF": "Lettre F"
   },
   "dimensions": {
-    "width": "Largeur (échantillons)",
-    "height": "Hauteur (échantillons)",
-    "separation": "Écart entre les fentes (échantillons)",
-    "radius": "Rayon (échantillons)",
+    "width": "Largeur (µm)",
+    "height": "Hauteur (µm)",
+    "separation": "Écart entre les fentes (µm)",
+    "radius": "Rayon (µm)",
     "innerRatio": "Rayon intérieur (% de l’extérieur)",
-    "period": "Période (échantillons)",
-    "thickness": "Épaisseur du trait (échantillons)"
+    "period": "Période (µm)",
+    "thickness": "Épaisseur du trait (µm)"
   },
   "imagingObjects": {
     "letterF": "Lettre F",
@@ -190,11 +216,12 @@
     "reconstructed": "Image reconstruite",
     "preset": "Préréglage",
     "filter": "Filtre",
-    "phaseObject": "Phase de l’objet (teinte)",
+    "phaseObject": "Phase (rad)",
     "log": "Spectre logarithmique",
     "erase": "Effacer (laisser passer la lumière)",
     "brushRadius": "Rayon du pinceau (cases)",
-    "power": "Puissance transmise · {{power}} %"
+    "power": "Puissance transmise · {{power}} %",
+    "phaseScale": "−{{limit}}     0     +{{limit}}"
   },
   "fourF": {
     "objectPlane": "Plan objet",

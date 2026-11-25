@@ -6,14 +6,16 @@ import { FourierScreenModel } from "../../common/fourier/FourierScreenModel.js";
 import { GridFields } from "../../common/fourier/GridFields.js";
 import { type ApertureSpec, rasterizeAperture } from "../../common/model/apertures.js";
 import type { ComplexField } from "../../common/model/ComplexField.js";
-import { focalPlaneCoordinate, spatialFrequencyStep } from "../../common/model/opticalSystem.js";
+import { evenCrop, focalPlaneCoordinate, spatialFrequencyStep } from "../../common/model/opticalSystem.js";
 import {
+  AIRY_FIFTH_ZERO_OVER_PI,
+  APERTURE_FIT_FRINGE_COUNT,
   APERTURE_PARAMETERS,
+  APERTURE_VIEW_UM,
   EXPOSURE_DB,
+  FOCAL_VIEW_MM,
   OPTICAL_PARAMETERS,
   PHASE_COMPARISON_DIMENSIONS,
-  SPECTRUM_ZOOMS,
-  type SpectrumZoom,
 } from "../../FourierOpticsConstants.js";
 import type { FourierOpticsPreferencesModel } from "../../preferences/FourierOpticsPreferencesModel.js";
 
@@ -73,7 +75,7 @@ function apertureSpec(kind: ApertureKind, dimensions: ApertureDimensions): Apert
 }
 
 export class FourierTransformModel extends FourierScreenModel implements TModel {
-  public readonly zoomProperty = new Property<SpectrumZoom>(2, { validValues: SPECTRUM_ZOOMS });
+  public readonly focalViewProperty = numberProperty(FOCAL_VIEW_MM);
   public readonly apertureProperty = new Property<ApertureKind>("circle", { validValues: APERTURE_KINDS });
   public readonly objectAProperty = new Property<ApertureKind>("letterF", { validValues: APERTURE_KINDS });
   public readonly objectBProperty = new Property<ApertureKind>("cross", { validValues: APERTURE_KINDS });
@@ -88,17 +90,73 @@ export class FourierTransformModel extends FourierScreenModel implements TModel 
   };
   public readonly wavelengthProperty = numberProperty(O.wavelengthNm);
   public readonly focalLengthProperty = numberProperty(O.f1Mm);
-  public readonly pitchProperty = numberProperty(O.pitchUm);
+  public readonly pitchUm = O.pitchUm;
   public readonly exposureProperty = numberProperty(EXPOSURE_DB);
   public readonly logProperty = new BooleanProperty(true);
   public readonly phaseProperty = new BooleanProperty(false);
   public readonly tintProperty = new BooleanProperty(true);
   public readonly swapProperty = new BooleanProperty(false);
   public readonly focalStepProperty = new DerivedProperty(
-    [this.sizeProperty, this.pitchProperty, this.wavelengthProperty, this.focalLengthProperty],
-    (size, pitch, wavelength, focalLength) =>
-      focalPlaneCoordinate(spatialFrequencyStep(size, pitch), wavelength, focalLength),
+    [this.sizeProperty, this.wavelengthProperty, this.focalLengthProperty],
+    (size, wavelength, focalLength) =>
+      focalPlaneCoordinate(spatialFrequencyStep(size, this.pitchUm), wavelength, focalLength),
   );
+
+  public readonly focalViewRangeProperty = new DerivedProperty(
+    [this.wavelengthProperty, this.focalLengthProperty],
+    (wavelength, focalLength) =>
+      new Range(
+        FOCAL_VIEW_MM.min,
+        Math.min(FOCAL_VIEW_MM.max, focalPlaneCoordinate(1 / this.pitchUm, wavelength, focalLength)),
+      ),
+  );
+  private readonly constrainFocalView = (range: Range) => {
+    this.focalViewProperty.value = range.constrainValue(this.focalViewProperty.value);
+  };
+
+  public readonly focalCropProperty = new DerivedProperty(
+    [this.focalViewProperty, this.focalStepProperty, this.sizeProperty],
+    (span, step, size) => evenCrop(span / step, size),
+  );
+  public readonly apertureCropProperty = DerivedProperty.deriveAny(
+    [this.apertureProperty, this.sizeProperty, this.swapProperty, ...Object.values(this.dimensions)],
+    () => {
+      if (this.swapProperty.value) {
+        return evenCrop(APERTURE_VIEW_UM.comparison / this.pitchUm, this.size);
+      }
+      const { width, height, separation, radius, period } = this.dimensions;
+      const kind = this.apertureProperty.value;
+      const extent =
+        kind === "circle" || kind === "annulus"
+          ? 2 * radius.value
+          : kind === "doubleSlit"
+            ? 2 * width.value + separation.value
+            : kind === "slit"
+              ? width.value
+              : kind === "grating"
+                ? period.value
+                : Math.max(width.value, height.value);
+      return evenCrop(Math.max(APERTURE_VIEW_UM.min, APERTURE_VIEW_UM.margin * extent) / this.pitchUm, this.size);
+    },
+  );
+
+  public fitPattern(): void {
+    const { radius, width, height, innerRatio, period, thickness } = this.dimensions;
+    const kind = this.apertureProperty.value;
+    const fringeFrequency =
+      kind === "circle"
+        ? AIRY_FIFTH_ZERO_OVER_PI / (2 * radius.value)
+        : kind === "annulus"
+          ? APERTURE_FIT_FRINGE_COUNT / (2 * radius.value * (1 - innerRatio.value / 100))
+          : kind === "grating"
+            ? APERTURE_FIT_FRINGE_COUNT / period.value
+            : kind === "cross" || kind === "letterF"
+              ? APERTURE_FIT_FRINGE_COUNT / Math.min(thickness.value, width.value, height.value)
+              : APERTURE_FIT_FRINGE_COUNT / (kind === "rectangle" ? Math.min(width.value, height.value) : width.value);
+    const span =
+      2 * focalPlaneCoordinate(fringeFrequency, this.wavelengthProperty.value, this.focalLengthProperty.value);
+    this.focalViewProperty.value = this.focalViewRangeProperty.value.constrainValue(span);
+  }
 
   public get object(): ComplexField {
     return this.fields.get("object", this.size);
@@ -136,7 +194,7 @@ export class FourierTransformModel extends FourierScreenModel implements TModel 
     ...this.fieldInputs,
     this.wavelengthProperty,
     this.focalLengthProperty,
-    this.pitchProperty,
+    this.focalViewProperty,
     this.exposureProperty,
     this.logProperty,
     this.phaseProperty,
@@ -156,6 +214,7 @@ export class FourierTransformModel extends FourierScreenModel implements TModel 
 
   public constructor(preferences?: FourierOpticsPreferencesModel) {
     super(preferences);
+    this.focalViewRangeProperty.lazyLink(this.constrainFocalView);
   }
 
   public recompute(ops: FourierOperations = this.cpu): void {
@@ -167,13 +226,13 @@ export class FourierTransformModel extends FourierScreenModel implements TModel 
       const d = this.dimensions;
       rasterizeAperture(
         apertureSpec(this.apertureProperty.value, {
-          width: d.width.value,
-          height: d.height.value,
-          separation: d.separation.value,
-          radius: d.radius.value,
+          width: d.width.value / this.pitchUm,
+          height: d.height.value / this.pitchUm,
+          separation: d.separation.value / this.pitchUm,
+          radius: d.radius.value / this.pitchUm,
           innerRatio: d.innerRatio.value,
-          period: d.period.value,
-          thickness: d.thickness.value,
+          period: d.period.value / this.pitchUm,
+          thickness: d.thickness.value / this.pitchUm,
         }),
         this.object,
       );
@@ -199,16 +258,17 @@ export class FourierTransformModel extends FourierScreenModel implements TModel 
     for (const property of this.resettable) {
       property.reset();
     }
-    this.zoomProperty.reset();
   }
 
   public override dispose(): void {
     this.inputLink.dispose();
+    this.apertureCropProperty.dispose();
+    this.focalCropProperty.dispose();
+    this.focalViewRangeProperty.dispose();
     this.focalStepProperty.dispose();
     for (const property of this.resettable) {
       property.dispose();
     }
-    this.zoomProperty.dispose();
     super.dispose();
   }
 }

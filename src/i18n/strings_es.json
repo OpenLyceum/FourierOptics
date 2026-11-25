@@ -17,12 +17,12 @@
       "barsDetails": "Las barras de onda cuadrada se repiten cada {{period}} muestras. Las cuatro primeras amplitudes relativas no nulas son 1, un tercio, un quinto y un séptimo.",
       "handle": "Control de frecuencia de {{readout}}",
       "handleHelp": "Mueve con las flechas o W, A, S, D. Mantén Mayús para ajustar con más precisión.",
-      "handleHelpHeading": "Mover los controles de frecuencia"
+      "handleHelpHeading": "Mueve los controles de frecuencia de las tres redes"
     },
     "fourierTransform": {
       "screenSummary": {
         "playArea": "El esquema muestra una onda plana, una abertura, una lente y el plano focal posterior. Debajo se ven la abertura y su patrón de difracción con un perfil central.",
-        "controlArea": "Elige una abertura y sus dimensiones. Ajusta la longitud de onda, la distancia focal y el paso de la cuadrícula, o abre la comparación de intercambio de fase.",
+        "controlArea": "Elige una abertura y sus dimensiones. Ajusta la longitud de onda, la distancia focal y el campo en el plano focal, encuadra el patrón o abre la comparación por intercambio de fase.",
         "interactionHint": "Prueba a estrechar la abertura para ensanchar el patrón, o intercambia la fase de dos objetos y compara sus reconstrucciones."
       },
       "currentDetails": "Abertura: {{aperture}}. {{dimensions}} Longitud de onda de {{wavelength}} nanómetros. Distancia focal de {{focalLength}} milímetros. Paso de {{pitch}} micrómetros. La imagen focal abarca {{span}} milímetros.",
@@ -34,16 +34,22 @@
         "controlArea": "Elige un objeto, un filtro o un preajuste. Mueve los tiradores de la máscara o pinta y borra celdas del plano de Fourier.",
         "interactionHint": "Prueba el preajuste Abbe–Porter para eliminar las líneas horizontales de la malla."
       },
-      "currentDetails": "Objeto {{object}}. Filtro {{filter}}. Potencia transmitida: {{power}} por ciento. {{effect}}",
+      "currentDetails": "Objeto {{object}}. Filtro {{filter}}. Potencia transmitida: {{power}} por ciento. {{effect}} {{cutoff}}",
       "radius": "Tirador del radio exterior de la máscara",
       "innerRadius": "Tirador del radio interior de la máscara",
       "slitWidth": "Tirador de la anchura de la rendija",
       "slitAngle": "Tirador del ángulo de la rendija",
       "dragHelp": "Usa las flechas para mover. Mantén Mayús para mover con mayor precisión.",
-      "moveHeading": "Mover los tiradores o el cursor del pincel",
       "brush": "Cursor del pincel de la máscara de Fourier",
       "brushHelp": "Usa las flechas para mover. Pulsa Espacio o Intro para pintar o borrar en la posición del cursor.",
-      "stamp": "Pintar o borrar en la posición del cursor"
+      "stamp": "Pintar o borrar en la posición del cursor",
+      "filterChanged": "Filtro {{filter}} seleccionado. {{effect}}",
+      "phaseContrastOn": "Contraste de fase activado. El punto de fase desplaza el orden cero en más pi medios radianes.",
+      "phaseContrastOff": "Contraste de fase desactivado.",
+      "radialCutoff": "Radio de la máscara de {{radius}} celdas.",
+      "bandCutoff": "La máscara deja pasar radios de {{inner}} a {{outer}} celdas.",
+      "slitCutoff": "Anchura de la rendija de {{width}} celdas. Su normal forma un ángulo de {{angle}} grados.",
+      "handleList": "Mueve el radio exterior, el radio interior, la anchura o el ángulo de la rendija, o el cursor del pincel"
     },
     "fourFOpticalSystem": {
       "screenSummary": {
@@ -53,7 +59,10 @@
       },
       "currentDetails": "Objeto {{object}}. Iluminación {{light}}. Aumento {{magnification}}. Diámetro del iris: {{diameter}} milímetros. Desenfoque: {{defocus}} milímetros. Corte: {{cutoff}} ciclos por micrómetro.",
       "iris": "Tirador de la apertura del iris",
-      "irisHelp": "Mueve hacia arriba para abrir el iris o hacia abajo para cerrarlo. Mantén Mayús para mover con mayor precisión."
+      "irisHelp": "Mueve hacia arriba para abrir el iris o hacia abajo para cerrarlo. Mantén Mayús para mover con mayor precisión.",
+      "finestPassed": "El grupo de barras más finas está dentro de la banda de paso óptica.",
+      "finestBlocked": "El grupo de barras más finas supera la frecuencia de corte óptica.",
+      "illuminationHelp": "Elige iluminación coherente o incoherente con las flechas."
     }
   },
   "preferences": {
@@ -75,11 +84,26 @@
     "zoom8": "×8",
     "resolution256": "256²",
     "resolution512": "512²",
-    "resolution1024": "1024²"
+    "resolution1024": "1024²",
+    "tooSlow": "La GPU es demasiado lenta en este dispositivo. La simulación usa la CPU.",
+    "zoom16": "×16",
+    "zoom32": "×32",
+    "zoomHelp": "Elige cuánto recortar el espectro de Fourier.",
+    "backendHelp": "Elige cómo ejecutar los cálculos de Fourier.",
+    "resolutionHelp": "Elige el número de muestras por lado de la cuadrícula.",
+    "keyboardHelp": "En Preferencias, abre Simulación para cambiar el motor de cálculo o la resolución de la cuadrícula. Usa las flechas dentro de cada grupo.",
+    "zoomKeyboardHelp": "Usa las flechas en la ampliación del espectro para cambiar el recorte.",
+    "dismissHelp": "Oculta este mensaje durante el resto de la sesión.",
+    "backendAndResolution": "Cálculo y cuadrícula en Preferencias",
+    "keyboardHelpHeading": "Visualización y cálculo"
   },
   "common": {
     "object": "Objeto",
-    "exposure": "Rango log. (dB)"
+    "exposure": "Rango log. (dB)",
+    "sliderHelp": "Usa las flechas para ajustar el valor.",
+    "checkboxHelp": "Pulsa Espacio para cambiar este ajuste.",
+    "comboHelp": "Abre la lista y usa las flechas para buscar una opción.",
+    "resetHelp": "Restaura los ajustes iniciales de esta pantalla."
   },
   "spatial": {
     "spectrum": "Espectro de Fourier · log |F|",
@@ -110,7 +134,6 @@
     "distance": "f = {{value}} mm",
     "wavelength": "Longitud de onda (nm)",
     "focalLength": "Distancia focal (mm)",
-    "pitch": "Paso de la cuadrícula (µm)",
     "log": "Intensidad logarítmica",
     "phase": "Fase por color",
     "tint": "Tinte espectral",
@@ -126,7 +149,10 @@
     "profile": "Corte horizontal central · intensidad relativa",
     "narrower": "Una abertura más estrecha ensancha el patrón de difracción.",
     "micrometers": "{{value}} µm",
-    "millimeters": "{{value}} mm"
+    "fieldOfView": "Campo en el plano focal (mm)",
+    "fieldOfViewHelp": "Ajusta la anchura visible en el plano focal. El muestreo puede limitar la anchura disponible.",
+    "fitPattern": "Encuadrar el patrón",
+    "fitPatternHelp": "Encuadra el patrón de difracción según la abertura, la longitud de onda y la distancia focal actuales."
   },
   "apertures": {
     "slit": "Rendija",
@@ -139,13 +165,13 @@
     "letterF": "Letra F"
   },
   "dimensions": {
-    "width": "Ancho (muestras)",
-    "height": "Alto (muestras)",
-    "separation": "Espacio entre rendijas (muestras)",
-    "radius": "Radio (muestras)",
+    "width": "Ancho (µm)",
+    "height": "Alto (µm)",
+    "separation": "Espacio entre rendijas (µm)",
+    "radius": "Radio (µm)",
     "innerRatio": "Radio interior (% del exterior)",
-    "period": "Período (muestras)",
-    "thickness": "Grosor del trazo (muestras)"
+    "period": "Período (µm)",
+    "thickness": "Grosor del trazo (µm)"
   },
   "imagingObjects": {
     "letterF": "Letra F",
@@ -190,11 +216,12 @@
     "reconstructed": "Imagen reconstruida",
     "preset": "Preajuste",
     "filter": "Filtro",
-    "phaseObject": "Fase del objeto (tono)",
+    "phaseObject": "Fase (rad)",
     "log": "Espectro logarítmico",
     "erase": "Borrar (dejar pasar la luz)",
     "brushRadius": "Radio del pincel (celdas)",
-    "power": "Potencia transmitida · {{power}} %"
+    "power": "Potencia transmitida · {{power}} %",
+    "phaseScale": "−{{limit}}     0     +{{limit}}"
   },
   "fourF": {
     "objectPlane": "Plano del objeto",

@@ -20,6 +20,7 @@ export class FourierOpticsPreferencesNode extends VBox {
     const group = <T>(
       property: Property<T>,
       title: TReadOnlyProperty<string>,
+      help: TReadOnlyProperty<string>,
       values: readonly T[],
       nameFor: (value: T) => TReadOnlyProperty<string>,
       name: string,
@@ -34,7 +35,7 @@ export class FourierOpticsPreferencesNode extends VBox {
             values.map((value) => ({
               value,
               createNode: () => text(nameFor(value)),
-              options: { accessibleName: nameFor(value) },
+              options: { accessibleName: nameFor(value), accessibleHelpText: help },
             })),
             {
               orientation: "horizontal",
@@ -52,6 +53,7 @@ export class FourierOpticsPreferencesNode extends VBox {
         group(
           preferences.backendProperty,
           strings.backendStringProperty,
+          strings.backendHelpStringProperty,
           BACKEND_CHOICES,
           (value) => (value === "auto" ? strings.automaticStringProperty : strings[`${value}StringProperty`]),
           "backendRadioButtonGroup",
@@ -59,6 +61,7 @@ export class FourierOpticsPreferencesNode extends VBox {
         group<ResolutionChoice>(
           preferences.resolutionProperty,
           strings.resolutionStringProperty,
+          strings.resolutionHelpStringProperty,
           [0, ...RESOLUTION_CHOICES],
           (value) => (value === 0 ? strings.automaticStringProperty : strings[`resolution${value}StringProperty`]),
           "resolutionRadioButtonGroup",

@@ -7,7 +7,14 @@ import { GridFields } from "../../common/fourier/GridFields.js";
 import type { ComplexField } from "../../common/model/ComplexField.js";
 import { FILTER_OBJECTS, type FilterObject, rasterizeImagingObject } from "../../common/model/imagingObjects.js";
 import { type MaskSpec, rasterizeMask } from "../../common/model/masks.js";
-import { FILTER_PARAMETERS as F, SPECTRUM_ZOOMS, type SpectrumZoom } from "../../FourierOpticsConstants.js";
+import {
+  FILTER_PARAMETERS as F,
+  MASK_EDIT_SPECTRUM_ZOOM,
+  MASK_PRESET_SPECTRUM_ZOOM,
+  OBJECT_SPECTRUM_ZOOM,
+  SPECTRUM_ZOOMS,
+  type SpectrumZoom,
+} from "../../FourierOpticsConstants.js";
 import type { FourierOpticsPreferencesModel } from "../../preferences/FourierOpticsPreferencesModel.js";
 
 export const FILTER_KINDS = [
@@ -34,7 +41,9 @@ const numberProperty = ({ default: value, min, max }: { default: number; min: nu
   new NumberProperty(value, { range: new Range(min, max) });
 
 export class SpatialFilteringModel extends FourierScreenModel implements TModel {
-  public readonly zoomProperty = new Property<SpectrumZoom>(2, { validValues: SPECTRUM_ZOOMS });
+  public readonly zoomProperty = new Property<SpectrumZoom>(OBJECT_SPECTRUM_ZOOM.letterF, {
+    validValues: SPECTRUM_ZOOMS,
+  });
   public readonly objectProperty = new Property<FilterObject>("letterF", { validValues: FILTER_OBJECTS });
   public readonly filterProperty = new Property<(typeof FILTER_KINDS)[number]>("open", { validValues: FILTER_KINDS });
   public readonly presetProperty = new Property<(typeof FILTER_PRESETS)[number]>("custom", {
@@ -110,13 +119,30 @@ export class SpatialFilteringModel extends FourierScreenModel implements TModel 
     this.innerRadiusProperty.reset();
     this.slitWidthProperty.reset();
     this.slitAngleProperty.reset();
+    this.chooseZoom();
+    if (preset === "edgeEnhancement" || preset === "abbePorter") {
+      this.zoomProperty.value = MASK_PRESET_SPECTRUM_ZOOM;
+    }
     this.applyingPreset = false;
   };
 
   public constructor(preferences?: FourierOpticsPreferencesModel) {
     super(preferences);
     this.presetProperty.lazyLink(this.applyPreset);
+    this.objectProperty.lazyLink(this.chooseZoom);
+    this.filterProperty.lazyLink(this.chooseZoom);
   }
+
+  private readonly chooseZoom = (): void => {
+    const filter = this.filterProperty.value;
+    const editable =
+      filter === "lowPass" ||
+      filter === "highPass" ||
+      filter === "bandPass" ||
+      filter === "horizontalSlit" ||
+      filter === "verticalSlit";
+    this.zoomProperty.value = editable ? MASK_EDIT_SPECTRUM_ZOOM : OBJECT_SPECTRUM_ZOOM[this.objectProperty.value];
+  };
 
   public getMask(): MaskSpec {
     const kind = this.filterProperty.value;

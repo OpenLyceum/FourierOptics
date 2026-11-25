@@ -14,3 +14,27 @@ test("WebGPU disabled launches the CPU fallback and explains the badge", async (
   await expect(page.getByRole("button", { name: "Dismiss" })).toHaveCount(0);
   expect(errors).toEqual([]);
 });
+
+test("Automatic skips device creation for a reported software adapter", async ({ page }) => {
+  await page.addInitScript(() => {
+    let deviceRequested = false;
+    document.addEventListener("DOMContentLoaded", () => {
+      document.documentElement.dataset["deviceRequested"] = String(deviceRequested);
+    });
+    Object.defineProperty(navigator, "gpu", {
+      value: {
+        requestAdapter: async () => ({
+          info: { isFallbackAdapter: true },
+          requestDevice: () => {
+            deviceRequested = true;
+            document.documentElement.dataset["deviceRequested"] = String(deviceRequested);
+            throw new Error("Automatic attempted to open a software device.");
+          },
+        }),
+      },
+    });
+  });
+  await page.goto("/?screens=2&backend=auto&ea");
+  await expect(page.getByText("Compute backend CPU fallback, grid 256 by 256 samples.")).toBeAttached();
+  await expect(page.locator("html")).toHaveAttribute("data-device-requested", "false");
+});

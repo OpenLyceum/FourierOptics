@@ -31,10 +31,6 @@ export class FourFOpticalSystemScreenView extends ScreenView {
     const filtering = manager.getFilteringStrings();
     const objects = manager.getImagingObjectStrings();
 
-    const presetZoom = (value: typeof model.objectProperty.value) => {
-      model.zoomProperty.value = value === "letterF" ? 4 : 2;
-    };
-    model.objectProperty.link(presetZoom);
     const displayChanged = () => model.inputsChangedEmitter.emit();
     model.zoomProperty.lazyLink(displayChanged);
     const diagram = new LensSchematicNode({
@@ -96,7 +92,10 @@ export class FourFOpticalSystemScreenView extends ScreenView {
       ILLUMINATION.map((value) => ({
         value,
         createNode: () => label(strings[`${value}StringProperty`]),
-        options: { accessibleName: strings[`${value}StringProperty`] },
+        options: {
+          accessibleName: strings[`${value}StringProperty`],
+          accessibleHelpText: a11y.illuminationHelpStringProperty,
+        },
       })),
       { accessibleName: strings.illuminationStringProperty, tandem: Tandem.OPT_OUT },
     );
@@ -177,6 +176,7 @@ export class FourFOpticalSystemScreenView extends ScreenView {
     });
     const reset = new ResetAllButton({
       ...FLAT_RESET_ALL_BUTTON_OPTIONS,
+      accessibleHelpText: manager.getCommonStrings().resetHelpStringProperty,
       right: this.layoutBounds.maxX - SCREEN_VIEW_MARGIN,
       bottom: this.layoutBounds.maxY - SCREEN_VIEW_MARGIN,
       listener: () => {
@@ -211,7 +211,6 @@ export class FourFOpticalSystemScreenView extends ScreenView {
     );
     content.disposeEmitter.addListener(() => {
       this.scheduler.dispose();
-      model.objectProperty.unlink(presetZoom);
       model.zoomProperty.unlink(displayChanged);
       model.illuminationProperty.unlink(updateIllumination);
       for (const property of [

@@ -2,6 +2,7 @@ import { DerivedProperty, type TReadOnlyProperty } from "scenerystack/axon";
 import { toFixed } from "scenerystack/dot";
 import { StringUtils } from "scenerystack/phetcommon";
 import { ScreenSummaryContent } from "scenerystack/sim";
+import { backendDescription } from "../../common/view/backendStatus.js";
 import { zoomCrop } from "../../common/view/spectrumZoom.js";
 import { GRATING_PARAMETERS, OPTICS_LAYOUT as L } from "../../FourierOpticsConstants.js";
 import { StringManager } from "../../i18n/StringManager.js";
@@ -35,6 +36,7 @@ export class SpatialFrequenciesScreenSummaryContent extends ScreenSummaryContent
         ...readouts,
         ...model.gratings.map((grating) => grating.enabledProperty),
         model.barsProperty,
+        model.sizeProperty,
         a11y.currentDetailsStringProperty,
         a11y.barsDetailsStringProperty,
       ],
@@ -50,12 +52,16 @@ export class SpatialFrequenciesScreenSummaryContent extends ScreenSummaryContent
         });
       },
     );
+    const backend = backendDescription(model);
     super({
       playAreaContent: a11y.screenSummary.playAreaStringProperty,
       controlAreaContent: a11y.screenSummary.controlAreaStringProperty,
-      currentDetailsContent: detailsProperty,
+      currentDetailsContent: [detailsProperty, backend],
       interactionHintContent: a11y.screenSummary.interactionHintStringProperty,
     });
-    this.disposeEmitter.addListener(() => detailsProperty.dispose());
+    this.disposeEmitter.addListener(() => {
+      detailsProperty.dispose();
+      backend.dispose();
+    });
   }
 }

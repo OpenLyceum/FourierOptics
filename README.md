@@ -6,7 +6,12 @@ See how a lens takes a spatial Fourier transform, then edit apertures and filter
 
 ## Features
 
-- English, Spanish, and French localization via `StringManager`
+- **Spatial Frequencies** combines gratings and shows their Fourier peaks or square-wave harmonics.
+- **Fourier Transform** shows diffraction from physical apertures with a focal-plane field-of-view control and phase comparison.
+- **Spatial Filtering** supports analytic and painted masks, including a phase-contrast experiment.
+- **4f Optical System** compares coherent and incoherent images as the iris and lenses change.
+- Automatic CPU/WebGPU selection, with preferences for compute backend and grid resolution.
+- Keyboard controls, live screen descriptions, and English, French, and Spanish localization.
 - Default and projector color profiles
 - Progressive Web App (installable, offline-capable)
 - Git hooks for Biome pre-commit checks
@@ -14,11 +19,17 @@ See how a lens takes a spatial Fourier transform, then edit apertures and filter
 
 ## Quick Start
 
+Use Node.js 26 or newer.
+
 ```bash
 npm install
 npm run icons    # generate PNG icons from public/icons/icon.svg
 npm start        # dev server → http://localhost:5173
 ```
+
+Use `?backend=auto|cpu|gpu` and `?resolution=256|512|1024` to set startup
+preferences. Automatic mode falls back to the CPU when a GPU is unavailable or too slow.
+See [the model](doc/model.md) and [implementation notes](doc/implementation-notes.md).
 
 ## Scripts
 
@@ -32,6 +43,7 @@ npm start        # dev server → http://localhost:5173
 | `npm run test:fuzz -- 90` | Same fuzz for 90 seconds (`--duration 90` or `FUZZ_DURATION=90` also work) |
 | `npm run test:fuzz:quick` | Shorter fuzz smoke (10s) |
 | `npm run test:fuzz:long` | Longer fuzz smoke (300s) |
+| `npm run test:browser` | Playwright WebGPU parity and WebGPU-disabled fallback |
 | `npm run test:soak` | By-hand leak soaks: headless (`tests/soak/headless.soak.ts`), then browser (`tests/soak/browser.spec.ts`) |
 | `npm run check` | TypeScript type check |
 | `npm run lint` | Biome check (warnings fail too) |
@@ -42,7 +54,6 @@ npm start        # dev server → http://localhost:5173
 | `npm run icons` | Regenerate PNG icons from `public/icons/icon.svg` |
 | `npm run release` | `check && lint && build && test`, then version patch + push tags |
 | `npm run clean` | Remove `dist/` |
-
 
 ## Tech Stack
 

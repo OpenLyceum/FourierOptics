@@ -17,12 +17,12 @@
       "barsDetails": "Square-wave bars repeat every {{period}} samples. The first four nonzero relative amplitudes are 1, one third, one fifth and one seventh.",
       "handle": "Frequency handle for {{readout}}",
       "handleHelp": "Move with the arrow keys or W, A, S, D. Hold Shift for finer movement.",
-      "handleHelpHeading": "Move frequency handles"
+      "handleHelpHeading": "Move the three grating frequency handles"
     },
     "fourierTransform": {
       "screenSummary": {
         "playArea": "The diagram shows a plane wave, aperture, lens, and back focal plane. Below are the aperture and its diffraction pattern with a centerline profile.",
-        "controlArea": "Choose an aperture and its dimensions. Adjust the wavelength, focal length, and grid pitch, or open the phase swap comparison.",
+        "controlArea": "Choose an aperture and its dimensions. Adjust the wavelength, focal length and focal-plane field of view, fit the pattern, or open the phase swap comparison.",
         "interactionHint": "Try narrowing the opening to spread the pattern, or swap the phase of two objects and compare their reconstructions."
       },
       "currentDetails": "Aperture: {{aperture}}. {{dimensions}} Wavelength {{wavelength}} nanometers. Focal length {{focalLength}} millimeters. Grid pitch {{pitch}} micrometers. The focal image spans {{span}} millimeters.",
@@ -34,16 +34,22 @@
         "controlArea": "Choose an object, filter, or preset. Move mask handles or paint and erase bins in the Fourier plane.",
         "interactionHint": "Try the Abbe–Porter preset to remove horizontal lines from a mesh."
       },
-      "currentDetails": "Object {{object}}. Filter {{filter}}. Transmitted power {{power}} percent. {{effect}}",
+      "currentDetails": "Object {{object}}. Filter {{filter}}. Transmitted power {{power}} percent. {{effect}} {{cutoff}}",
       "radius": "Outer mask radius handle",
       "innerRadius": "Inner mask radius handle",
       "slitWidth": "Slit width handle",
       "slitAngle": "Slit angle handle",
       "dragHelp": "Move with the arrow keys. Hold Shift for finer movement.",
-      "moveHeading": "Move mask handles or brush cursor",
       "brush": "Fourier mask brush cursor",
       "brushHelp": "Move with the arrow keys. Press Space or Enter to paint or erase at the cursor.",
-      "stamp": "Paint or erase at cursor"
+      "stamp": "Paint or erase at cursor",
+      "filterChanged": "{{filter}} selected. {{effect}}",
+      "phaseContrastOn": "Phase contrast on. The phase dot shifts the zero order by plus pi over two radians.",
+      "phaseContrastOff": "Phase contrast off.",
+      "radialCutoff": "Mask radius {{radius}} bins.",
+      "bandCutoff": "The mask passes radii from {{inner}} to {{outer}} bins.",
+      "slitCutoff": "Slit width {{width}} bins. Its normal is at {{angle}} degrees.",
+      "handleList": "Move the outer radius, inner radius, slit width, slit angle or brush cursor"
     },
     "fourFOpticalSystem": {
       "screenSummary": {
@@ -53,7 +59,10 @@
       },
       "currentDetails": "Object {{object}}. Illumination {{light}}. Magnification {{magnification}}. Iris diameter {{diameter}} millimeters. Defocus {{defocus}} millimeters. Cutoff {{cutoff}} cycles per micrometer.",
       "iris": "Iris aperture handle",
-      "irisHelp": "Move up to open the iris or down to close it. Hold Shift for finer movement."
+      "irisHelp": "Move up to open the iris or down to close it. Hold Shift for finer movement.",
+      "finestPassed": "The finest bar group is within the optical cutoff.",
+      "finestBlocked": "The finest bar group is beyond the optical cutoff.",
+      "illuminationHelp": "Choose coherent or incoherent illumination using the arrow keys."
     }
   },
   "preferences": {
@@ -75,11 +84,26 @@
     "zoom8": "×8",
     "resolution256": "256²",
     "resolution512": "512²",
-    "resolution1024": "1024²"
+    "resolution1024": "1024²",
+    "tooSlow": "GPU too slow on this device. The simulation is running on the CPU.",
+    "zoom16": "×16",
+    "zoom32": "×32",
+    "zoomHelp": "Choose how tightly to crop the Fourier spectrum.",
+    "backendHelp": "Choose how Fourier calculations run.",
+    "resolutionHelp": "Choose the number of samples along each side of the grid.",
+    "keyboardHelp": "In Preferences, open Simulation to change the compute backend or grid resolution. Use the arrow keys within each group.",
+    "zoomKeyboardHelp": "Use the arrow keys in Spectrum zoom to change the crop.",
+    "dismissHelp": "Hide this message for the rest of this session.",
+    "backendAndResolution": "Backend and grid in Preferences",
+    "keyboardHelpHeading": "Display and computation"
   },
   "common": {
     "object": "Object",
-    "exposure": "Log range (dB)"
+    "exposure": "Log range (dB)",
+    "sliderHelp": "Use the arrow keys to adjust the value.",
+    "checkboxHelp": "Press Space to toggle this setting.",
+    "comboHelp": "Open the list and use the arrow keys to find an option.",
+    "resetHelp": "Restore the starting settings on this screen."
   },
   "spatial": {
     "spectrum": "Fourier spectrum · log |F|",
@@ -110,7 +134,6 @@
     "distance": "f = {{value}} mm",
     "wavelength": "Wavelength (nm)",
     "focalLength": "Focal length (mm)",
-    "pitch": "Grid pitch (µm)",
     "log": "Log intensity",
     "phase": "Phase hue",
     "tint": "Wavelength tint",
@@ -126,7 +149,10 @@
     "profile": "Horizontal centerline · relative intensity",
     "narrower": "Narrower openings spread the diffraction pattern.",
     "micrometers": "{{value}} µm",
-    "millimeters": "{{value}} mm"
+    "fieldOfView": "Focal-plane field of view (mm)",
+    "fieldOfViewHelp": "Adjust the displayed span in the focal plane. Sampling can limit the available span.",
+    "fitPattern": "Fit pattern",
+    "fitPatternHelp": "Frame the diffraction pattern for the current aperture, wavelength and focal length."
   },
   "apertures": {
     "slit": "Slit",
@@ -139,13 +165,13 @@
     "letterF": "Letter F"
   },
   "dimensions": {
-    "width": "Width (samples)",
-    "height": "Height (samples)",
-    "separation": "Gap between slits (samples)",
-    "radius": "Radius (samples)",
+    "width": "Width (µm)",
+    "height": "Height (µm)",
+    "separation": "Gap between slits (µm)",
+    "radius": "Radius (µm)",
     "innerRatio": "Inner radius (% of outer)",
-    "period": "Period (samples)",
-    "thickness": "Stroke thickness (samples)"
+    "period": "Period (µm)",
+    "thickness": "Stroke thickness (µm)"
   },
   "imagingObjects": {
     "letterF": "Letter F",
@@ -190,11 +216,12 @@
     "reconstructed": "Reconstructed image",
     "preset": "Preset",
     "filter": "Filter",
-    "phaseObject": "Object phase (hue)",
+    "phaseObject": "Phase (rad)",
     "log": "Log spectrum",
     "erase": "Erase (pass light)",
     "brushRadius": "Brush radius (bins)",
-    "power": "Power transmitted · {{power}}%"
+    "power": "Power transmitted · {{power}}%",
+    "phaseScale": "−{{limit}}     0     +{{limit}}"
   },
   "fourF": {
     "objectPlane": "Object plane",

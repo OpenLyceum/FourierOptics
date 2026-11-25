@@ -97,5 +97,5 @@ onReadyToLaunch(() => {
 
     sim.start();
   };
-  initializeGpuContext(simPreferences.backendProperty.value === "cpu").then(launch, launch);
+  initializeGpuContext(simPreferences.backendProperty.value).then(launch, launch);
 });

@@ -1,9 +1,11 @@
 import {
   BasicActionsKeyboardHelpSection,
+  ComboBoxKeyboardHelpSection,
   MoveDraggableItemsKeyboardHelpSection,
   SliderControlsKeyboardHelpSection,
   TwoColumnKeyboardHelpContent,
 } from "scenerystack/scenery-phet";
+import { opticsKeyboardHelp } from "../../common/view/OpticsKeyboardHelp.js";
 import { StringManager } from "../../i18n/StringManager.js";
 
 export class FourFOpticalSystemKeyboardHelpContent extends TwoColumnKeyboardHelpContent {
@@ -14,7 +16,11 @@ export class FourFOpticalSystemKeyboardHelpContent extends TwoColumnKeyboardHelp
         new MoveDraggableItemsKeyboardHelpSection({ headingStringProperty: a11y.irisStringProperty }),
         new SliderControlsKeyboardHelpSection(),
       ],
-      [new BasicActionsKeyboardHelpSection()],
+      [
+        new BasicActionsKeyboardHelpSection({ withCheckboxContent: true }),
+        new ComboBoxKeyboardHelpSection(),
+        opticsKeyboardHelp(true),
+      ],
     );
   }
 }
