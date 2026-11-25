@@ -21,6 +21,7 @@ import "./brand.js";
 
 import { onReadyToLaunch, PreferencesModel, Sim } from "scenerystack/sim";
 import { Tandem } from "scenerystack/tandem";
+import { initializeGpuContext } from "./common/fourier/gpu/GpuContext.js";
 import FourierOpticsColors from "./FourierOpticsColors.js";
 import { FourFOpticalSystemScreen } from "./four-f-optical-system/FourFOpticalSystemScreen.js";
 import { FourierTransformScreen } from "./fourier-transform/FourierTransformScreen.js";
@@ -36,58 +37,65 @@ onReadyToLaunch(() => {
   // Simulation-specific preferences; initial values come from fourierOpticsQueryParameters.
   const simPreferences = new FourierOpticsPreferencesModel(Tandem.ROOT.createTandem("preferences"));
 
-  const screens = [
-    new SpatialFrequenciesScreen({
-      name: stringManager.getScreenNames().spatialFrequenciesStringProperty,
-      tandem: Tandem.ROOT.createTandem("spatialFrequenciesScreen"),
-      backgroundColorProperty: FourierOpticsColors.backgroundColorProperty,
-    }),
-    new FourierTransformScreen({
-      name: stringManager.getScreenNames().fourierTransformStringProperty,
-      tandem: Tandem.ROOT.createTandem("fourierTransformScreen"),
-      backgroundColorProperty: FourierOpticsColors.backgroundColorProperty,
-    }),
-    new SpatialFilteringScreen({
-      name: stringManager.getScreenNames().spatialFilteringStringProperty,
-      tandem: Tandem.ROOT.createTandem("spatialFilteringScreen"),
-      backgroundColorProperty: FourierOpticsColors.backgroundColorProperty,
-    }),
-    new FourFOpticalSystemScreen({
-      name: stringManager.getScreenNames().fourFOpticalSystemStringProperty,
-      tandem: Tandem.ROOT.createTandem("fourFOpticalSystemScreen"),
-      backgroundColorProperty: FourierOpticsColors.backgroundColorProperty,
-    }),
-  ];
+  const launch = () => {
+    const screens = [
+      new SpatialFrequenciesScreen({
+        name: stringManager.getScreenNames().spatialFrequenciesStringProperty,
+        tandem: Tandem.ROOT.createTandem("spatialFrequenciesScreen"),
+        preferences: simPreferences,
+        backgroundColorProperty: FourierOpticsColors.backgroundColorProperty,
+      }),
+      new FourierTransformScreen({
+        name: stringManager.getScreenNames().fourierTransformStringProperty,
+        tandem: Tandem.ROOT.createTandem("fourierTransformScreen"),
+        preferences: simPreferences,
+        backgroundColorProperty: FourierOpticsColors.backgroundColorProperty,
+      }),
+      new SpatialFilteringScreen({
+        name: stringManager.getScreenNames().spatialFilteringStringProperty,
+        tandem: Tandem.ROOT.createTandem("spatialFilteringScreen"),
+        preferences: simPreferences,
+        backgroundColorProperty: FourierOpticsColors.backgroundColorProperty,
+      }),
+      new FourFOpticalSystemScreen({
+        name: stringManager.getScreenNames().fourFOpticalSystemStringProperty,
+        tandem: Tandem.ROOT.createTandem("fourFOpticalSystemScreen"),
+        preferences: simPreferences,
+        backgroundColorProperty: FourierOpticsColors.backgroundColorProperty,
+      }),
+    ];
 
-  const sim = new Sim(stringManager.getTitleStringProperty(), screens, {
-    preferencesModel: new PreferencesModel({
-      visualOptions: {
-        // Adds a "Projector Mode" toggle in Preferences → Visual
-        supportsProjectorMode: true,
-        // Enables keyboard-navigation highlight outlines
-        supportsInteractiveHighlights: true,
-      },
-      simulationOptions: {
-        customPreferences: [
-          {
-            createContent: (tandem: Tandem) => new FourierOpticsPreferencesNode(simPreferences, tandem),
-          },
-        ],
-      },
-      localizationOptions: {
-        // Adds a language picker in Preferences → Language
-        supportsDynamicLocale: true,
-      },
-    }),
+    const sim = new Sim(stringManager.getTitleStringProperty(), screens, {
+      preferencesModel: new PreferencesModel({
+        visualOptions: {
+          // Adds a "Projector Mode" toggle in Preferences → Visual
+          supportsProjectorMode: true,
+          // Enables keyboard-navigation highlight outlines
+          supportsInteractiveHighlights: true,
+        },
+        simulationOptions: {
+          customPreferences: [
+            {
+              createContent: (tandem: Tandem) => new FourierOpticsPreferencesNode(simPreferences, tandem),
+            },
+          ],
+        },
+        localizationOptions: {
+          // Adds a language picker in Preferences → Language
+          supportsDynamicLocale: true,
+        },
+      }),
 
-    // Optional: fill in credits shown in Help → About
-    credits: {
-      leadDesign: "",
-      softwareDevelopment: "",
-      team: "",
-      qualityAssurance: "",
-    },
-  });
+      // Optional: fill in credits shown in Help → About
+      credits: {
+        leadDesign: "",
+        softwareDevelopment: "",
+        team: "",
+        qualityAssurance: "",
+      },
+    });
 
-  sim.start();
+    sim.start();
+  };
+  initializeGpuContext(simPreferences.backendProperty.value === "cpu").then(launch, launch);
 });

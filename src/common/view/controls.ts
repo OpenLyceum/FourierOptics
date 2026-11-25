@@ -2,9 +2,11 @@ import type { BooleanProperty, NumberProperty, Property, TReadOnlyProperty } fro
 import { Dimension2 } from "scenerystack/dot";
 import { type Node, Text, type TextOptions, VBox } from "scenerystack/scenery";
 import { NumberControl, PhetFont } from "scenerystack/scenery-phet";
-import { Checkbox, ComboBox } from "scenerystack/sun";
+import { AquaRadioButtonGroup, Checkbox, ComboBox } from "scenerystack/sun";
+import { Tandem } from "scenerystack/tandem";
 import Colors from "../../FourierOpticsColors.js";
-import { OPTICS_LAYOUT as L } from "../../FourierOpticsConstants.js";
+import { OPTICS_LAYOUT as L, SPECTRUM_ZOOMS, type SpectrumZoom } from "../../FourierOpticsConstants.js";
+import { StringManager } from "../../i18n/StringManager.js";
 import { FLAT_PANEL_PUSH_BUTTON_OPTIONS, FOURIER_OPTICS_COMBO_BOX_OPTIONS } from "../FourierOpticsButtonOptions.js";
 
 export function label(property: TReadOnlyProperty<string>, options?: TextOptions): Text {
@@ -81,5 +83,33 @@ export function combo<T>(
     align: "left",
     spacing: L.smallGap / 2,
     children: [label(name, { maxWidth: L.controlWidth }), box],
+  });
+}
+
+export function zoomControl(property: Property<SpectrumZoom>): VBox {
+  const strings = StringManager.getInstance().getPreferences();
+  const labels = [
+    strings.zoom1StringProperty,
+    strings.zoom2StringProperty,
+    strings.zoom4StringProperty,
+    strings.zoom8StringProperty,
+  ];
+  const group = new AquaRadioButtonGroup(
+    property,
+    SPECTRUM_ZOOMS.map((value, index) => {
+      const name = labels[index] ?? strings.zoom1StringProperty;
+      return { value, createNode: () => label(name), options: { accessibleName: name } };
+    }),
+    {
+      accessibleName: strings.zoomStringProperty,
+      orientation: "horizontal",
+      spacing: L.smallGap,
+      tandem: Tandem.OPT_OUT,
+    },
+  );
+  return new VBox({
+    align: "left",
+    spacing: L.smallGap / 2,
+    children: [label(strings.zoomStringProperty), group],
   });
 }

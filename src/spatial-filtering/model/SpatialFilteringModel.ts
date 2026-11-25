@@ -1,11 +1,14 @@
-import { BooleanProperty, Emitter, Multilink, NumberProperty, Property } from "scenerystack/axon";
+import { BooleanProperty, Multilink, NumberProperty, Property } from "scenerystack/axon";
 import { clamp, Range } from "scenerystack/dot";
 import type { TModel } from "scenerystack/joist";
-import { createFourierEngine } from "../../common/fourier/createFourierEngine.js";
-import { ComplexField } from "../../common/model/ComplexField.js";
+import type { FourierOperations } from "../../common/fourier/FourierEngine.js";
+import { FourierScreenModel } from "../../common/fourier/FourierScreenModel.js";
+import { GridFields } from "../../common/fourier/GridFields.js";
+import type { ComplexField } from "../../common/model/ComplexField.js";
 import { FILTER_OBJECTS, type FilterObject, rasterizeImagingObject } from "../../common/model/imagingObjects.js";
 import { type MaskSpec, rasterizeMask } from "../../common/model/masks.js";
-import { FILTER_PARAMETERS as F, OPTICAL_PARAMETERS } from "../../FourierOpticsConstants.js";
+import { FILTER_PARAMETERS as F, SPECTRUM_ZOOMS, type SpectrumZoom } from "../../FourierOpticsConstants.js";
+import type { FourierOpticsPreferencesModel } from "../../preferences/FourierOpticsPreferencesModel.js";
 
 export const FILTER_KINDS = [
   "open",
@@ -30,8 +33,8 @@ const configurations = {
 const numberProperty = ({ default: value, min, max }: { default: number; min: number; max: number }) =>
   new NumberProperty(value, { range: new Range(min, max) });
 
-export class SpatialFilteringModel implements TModel {
-  public readonly size = OPTICAL_PARAMETERS.gridSize.default;
+export class SpatialFilteringModel extends FourierScreenModel implements TModel {
+  public readonly zoomProperty = new Property<SpectrumZoom>(2, { validValues: SPECTRUM_ZOOMS });
   public readonly objectProperty = new Property<FilterObject>("letterF", { validValues: FILTER_OBJECTS });
   public readonly filterProperty = new Property<(typeof FILTER_KINDS)[number]>("open", { validValues: FILTER_KINDS });
   public readonly presetProperty = new Property<(typeof FILTER_PRESETS)[number]>("custom", {
@@ -46,15 +49,30 @@ export class SpatialFilteringModel implements TModel {
   public readonly logProperty = new BooleanProperty(true);
   public readonly phaseProperty = new BooleanProperty(false);
   public readonly transmittedProperty = new NumberProperty(1);
-  public readonly inputsChangedEmitter = new Emitter();
 
-  public readonly object = new ComplexField(this.size);
-  public readonly spectrum = new ComplexField(this.size);
-  public readonly reconstructed = new ComplexField(this.size);
-  private readonly painted = new ComplexField(this.size);
-  private readonly scratch = new ComplexField(this.size);
-  private readonly engine = createFourierEngine(this.size);
-  private lastObject: FilterObject | undefined;
+  public get object(): ComplexField {
+    return this.fields.get("object", this.size);
+  }
+  public get spectrum(): ComplexField {
+    return this.fields.get("spectrum", this.size);
+  }
+  public get reconstructed(): ComplexField {
+    return this.fields.get("reconstructed", this.size);
+  }
+  private get painted(): ComplexField {
+    const field = this.fields.get("painted", this.size);
+    if (field !== this.lastPainted) {
+      this.lastPainted = field;
+      field.fill(1);
+    }
+    return field;
+  }
+  private get scratch(): ComplexField {
+    return this.fields.get("scratch", this.size);
+  }
+  private lastPainted: ComplexField | undefined;
+  private lastRaster: { kind: FilterObject; field: ComplexField } | undefined;
+  private cpuSpectrum: ComplexField | undefined;
   private applyingPreset = false;
 
   private readonly maskInputs = [
@@ -95,8 +113,8 @@ export class SpatialFilteringModel implements TModel {
     this.applyingPreset = false;
   };
 
-  public constructor() {
-    this.painted.fill(1);
+  public constructor(preferences?: FourierOpticsPreferencesModel) {
+    super(preferences);
     this.presetProperty.lazyLink(this.applyPreset);
   }
 
@@ -154,34 +172,52 @@ export class SpatialFilteringModel implements TModel {
     this.inputsChangedEmitter.emit();
   }
 
-  public recompute(): Float32Array {
+  private readonly fields = new GridFields("object", "spectrum", "reconstructed", "painted", "scratch");
+
+  public recompute(ops: FourierOperations = this.cpu, deferReadout = false): Float32Array {
     const kind = this.objectProperty.value;
-    if (kind !== this.lastObject) {
-      rasterizeImagingObject(kind, this.object, this.scratch);
-      this.engine.forward(this.object, this.spectrum);
-      this.lastObject = kind;
+    const field = this.object;
+    if (kind !== this.lastRaster?.kind || field !== this.lastRaster.field) {
+      rasterizeImagingObject(kind, field, this.scratch);
+      this.lastRaster = { kind, field };
+      this.cpuSpectrum = undefined;
+    }
+    if (this.engineInfoProperty.value.backend === "webgpu" || this.cpuSpectrum !== this.spectrum) {
+      ops.forward(field, this.spectrum);
+      this.cpuSpectrum = this.engineInfoProperty.value.backend === "cpu" ? this.spectrum : undefined;
     }
     const transmission = rasterizeMask(this.getMask(), this.size);
-    this.engine.filterAndInverse(this.spectrum, transmission, this.reconstructed, "ideal");
-    this.transmittedProperty.value = clamp(this.reconstructed.totalPower() / this.object.totalPower(), 0, 1);
+    ops.filterAndInverse(this.spectrum, transmission, this.reconstructed, "ideal");
+    if (!deferReadout) {
+      this.capturePower(ops)();
+    }
     return transmission;
+  }
+
+  public capturePower(ops: FourierOperations): () => void {
+    const read = ops.readPower(this.reconstructed);
+    const inputPower = this.object.totalPower();
+    return () => {
+      this.transmittedProperty.value = clamp(read() / inputPower, 0, 1);
+    };
   }
 
   public reset(): void {
     for (const property of this.resettable) {
       property.reset();
     }
+    this.zoomProperty.reset();
     this.painted.fill(1);
     this.inputsChangedEmitter.emit();
   }
 
-  public dispose(): void {
+  public override dispose(): void {
     this.inputLink.dispose();
     this.presetProperty.unlink(this.applyPreset);
     for (const property of this.resettable) {
       property.dispose();
     }
-    this.inputsChangedEmitter.dispose();
-    this.engine.dispose();
+    this.zoomProperty.dispose();
+    super.dispose();
   }
 }

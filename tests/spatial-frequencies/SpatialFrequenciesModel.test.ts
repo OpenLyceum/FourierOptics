@@ -60,7 +60,7 @@ describe("SpatialFrequenciesModel", () => {
   it("describes odd square-wave harmonics and coalesces edits between frames", () => {
     const model = new SpatialFrequenciesModel();
     let recomputes = 0;
-    const scheduler = new FrameRecomputeScheduler(model.inputsChangedEmitter, () => {
+    const scheduler = new FrameRecomputeScheduler(model.inputsChangedEmitter, () => () => {
       model.recompute();
       recomputes++;
     });

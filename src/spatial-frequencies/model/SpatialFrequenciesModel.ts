@@ -1,11 +1,14 @@
-import { BooleanProperty, Emitter, Multilink, NumberProperty } from "scenerystack/axon";
+import { BooleanProperty, Multilink, NumberProperty } from "scenerystack/axon";
 import { clamp, Range, Vector2 } from "scenerystack/dot";
 import type { TModel } from "scenerystack/joist";
-import { createFourierEngine } from "../../common/fourier/createFourierEngine.js";
+import type { FourierOperations } from "../../common/fourier/FourierEngine.js";
+import { FourierScreenModel } from "../../common/fourier/FourierScreenModel.js";
+import { GridFields } from "../../common/fourier/GridFields.js";
 import { rasterizeAperture } from "../../common/model/apertures.js";
-import { ComplexField } from "../../common/model/ComplexField.js";
+import type { ComplexField } from "../../common/model/ComplexField.js";
 import { spatialFrequencyStep } from "../../common/model/opticalSystem.js";
-import { EXPOSURE_DB, GRATING_PARAMETERS, OPTICAL_PARAMETERS } from "../../FourierOpticsConstants.js";
+import { EXPOSURE_DB, GRATING_PARAMETERS } from "../../FourierOpticsConstants.js";
+import type { FourierOpticsPreferencesModel } from "../../preferences/FourierOpticsPreferencesModel.js";
 
 const PARAMETERS = GRATING_PARAMETERS;
 const RADIANS_PER_DEGREE = Math.PI / 180;
@@ -43,9 +46,10 @@ class Grating {
   }
 }
 
-export class SpatialFrequenciesModel implements TModel {
-  public readonly size = OPTICAL_PARAMETERS.gridSize.default;
-  public readonly frequencyStep = spatialFrequencyStep(this.size, 1);
+export class SpatialFrequenciesModel extends FourierScreenModel implements TModel {
+  public get frequencyStep(): number {
+    return spatialFrequencyStep(this.size, 1);
+  }
   public readonly gratings = PARAMETERS.defaults.map((defaults, index) => new Grating(defaults, index === 0));
   public readonly barsProperty = new BooleanProperty(false);
   public readonly selectedGratingProperty = new NumberProperty(0, {
@@ -53,15 +57,17 @@ export class SpatialFrequenciesModel implements TModel {
     range: new Range(0, this.gratings.length - 1),
   });
   public readonly exposureProperty = new NumberProperty(EXPOSURE_DB.default, { range: rangeFor(EXPOSURE_DB) });
-  public readonly inputsChangedEmitter = new Emitter();
-  public readonly object = new ComplexField(this.size);
-  public readonly spectrum = new ComplexField(this.size);
+  public get object(): ComplexField {
+    return this.fields.get("object", this.size);
+  }
+  public get spectrum(): ComplexField {
+    return this.fields.get("spectrum", this.size);
+  }
   public readonly harmonics = Array.from({ length: PARAMETERS.displayedHarmonics }, (_, index) => {
     const order = index + 1;
     return { order, amplitude: order % 2 === 0 ? 0 : 1 / order };
   });
 
-  private readonly engine = createFourierEngine(this.size);
   private readonly fieldInputs = [this.barsProperty, ...this.gratings.flatMap((grating) => grating.inputs)];
   private readonly inputLink = Multilink.lazyMultilinkAny(this.fieldInputs, () => this.inputsChangedEmitter.emit());
 
@@ -83,7 +89,13 @@ export class SpatialFrequenciesModel implements TModel {
     }
   }
 
-  public recompute(): void {
+  private readonly fields = new GridFields("object", "spectrum");
+
+  public constructor(preferences?: FourierOpticsPreferencesModel) {
+    super(preferences);
+  }
+
+  public recompute(ops: FourierOperations = this.cpu): void {
     rasterizeAperture(
       this.barsProperty.value
         ? { kind: "grating", period: PARAMETERS.barPeriod, angle: 0 }
@@ -96,7 +108,7 @@ export class SpatialFrequenciesModel implements TModel {
           },
       this.object,
     );
-    this.engine.forward(this.object, this.spectrum);
+    ops.forward(this.object, this.spectrum);
   }
 
   public reset(): void {
@@ -105,12 +117,11 @@ export class SpatialFrequenciesModel implements TModel {
     }
   }
 
-  public dispose(): void {
+  public override dispose(): void {
     this.inputLink.dispose();
     for (const property of [...this.fieldInputs, this.selectedGratingProperty, this.exposureProperty]) {
       property.dispose();
     }
-    this.inputsChangedEmitter.dispose();
-    this.engine.dispose();
+    super.dispose();
   }
 }

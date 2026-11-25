@@ -8,10 +8,12 @@ import { ResetAllButton } from "scenerystack/scenery-phet";
 import { ScreenView, type ScreenViewOptions } from "scenerystack/sim";
 import { FLAT_RESET_ALL_BUTTON_OPTIONS } from "../../common/FourierOpticsButtonOptions.js";
 import { FourierOpticsPanel } from "../../common/FourierOpticsPanel.js";
-import { checkbox, combo, heading, label, numberControl } from "../../common/view/controls.js";
+import { backendStatus } from "../../common/view/backendStatus.js";
+import { checkbox, combo, heading, label, numberControl, zoomControl } from "../../common/view/controls.js";
 import { FieldImageNode } from "../../common/view/FieldImageNode.js";
 import { FrameRecomputeScheduler } from "../../common/view/FrameRecomputeScheduler.js";
 import { LensSchematicNode } from "../../common/view/LensSchematicNode.js";
+import { zoomCrop } from "../../common/view/spectrumZoom.js";
 import Colors from "../../FourierOpticsColors.js";
 import { OPTICS_LAYOUT as L, SCREEN_VIEW_MARGIN } from "../../FourierOpticsConstants.js";
 import { StringManager } from "../../i18n/StringManager.js";
@@ -36,8 +38,12 @@ export class FourierTransformScreenView extends ScreenView {
     const strings = manager.getTransformStrings();
     const common = manager.getCommonStrings();
     const fieldSize = L.fieldSize;
-    const apertureImage = new FieldImageNode(model.object, fieldSize);
-    const focalImage = new FieldImageNode(model.spectrum, fieldSize, L.focalBins);
+    const presetZoom = (kind: typeof model.apertureProperty.value) => {
+      model.zoomProperty.value = kind === "letterF" || kind === "cross" || kind === "grating" ? 4 : 2;
+    };
+    model.apertureProperty.link(presetZoom);
+    const apertureImage = new FieldImageNode(fieldSize);
+    const focalImage = new FieldImageNode(fieldSize, true);
     const focalHeadingProperty = new DerivedProperty(
       [
         model.logProperty,
@@ -60,9 +66,15 @@ export class FourierTransformScreenView extends ScreenView {
     schematic.disposeEmitter.addListener(() => focalLengthLabelProperty.dispose());
 
     const barLabelProperty = new DerivedProperty(
-      [model.focalStepProperty, strings.micrometersStringProperty, strings.millimetersStringProperty],
-      (step, micro, milli) => {
-        const mm = (step * L.focalBins * L.scaleBarWidth) / fieldSize;
+      [
+        model.focalStepProperty,
+        model.sizeProperty,
+        model.zoomProperty,
+        strings.micrometersStringProperty,
+        strings.millimetersStringProperty,
+      ],
+      (step, size, factor, micro, milli) => {
+        const mm = (step * zoomCrop(L.focalBins, factor, size) * L.scaleBarWidth) / fieldSize;
         return StringUtils.fillIn(mm < 1 ? micro : milli, {
           value: (mm < 1 ? mm * MICROMETERS_PER_MILLIMETER : mm).toPrecision(3),
         });
@@ -131,17 +143,17 @@ export class FourierTransformScreenView extends ScreenView {
     });
 
     const swappedImages = [
-      { name: strings.objectAStringProperty, field: model.objectA },
-      { name: strings.objectBStringProperty, field: model.objectB },
-      { name: strings.resultAStringProperty, field: model.reconstructionA },
-      { name: strings.resultBStringProperty, field: model.reconstructionB },
+      { name: strings.objectAStringProperty, field: () => model.objectA },
+      { name: strings.objectBStringProperty, field: () => model.objectB },
+      { name: strings.resultAStringProperty, field: () => model.reconstructionA },
+      { name: strings.resultBStringProperty, field: () => model.reconstructionB },
     ].map(({ name, field }) => {
-      const image = new FieldImageNode(field, L.swapImageSize);
+      const image = new FieldImageNode(L.swapImageSize);
       const tile = new VBox({
         spacing: L.smallGap,
         children: [heading(name, L.swapImageSize), image],
       });
-      return { image, tile };
+      return { field, image, tile };
     });
     const swapPlayArea = new VBox({
       spacing: L.gap,
@@ -192,6 +204,7 @@ export class FourierTransformScreenView extends ScreenView {
         log,
         checkbox(strings.phaseStringProperty, model.phaseProperty),
         tint,
+        zoomControl(model.zoomProperty),
         exposure,
       ],
     });
@@ -220,7 +233,11 @@ export class FourierTransformScreenView extends ScreenView {
       centerX: this.layoutBounds.centerX,
       top: this.layoutBounds.minY + SCREEN_VIEW_MARGIN,
     });
-    const content = new Node({ children: [interfaceRow, reset, popupLayer], pdomOrder: [panel, reset] });
+    const status = backendStatus(model, this.layoutBounds);
+    const content = new Node({
+      children: [interfaceRow, reset, popupLayer, status],
+      pdomOrder: [status, panel, reset],
+    });
     this.addChild(content);
 
     const visibility = Multilink.multilink(
@@ -240,40 +257,53 @@ export class FourierTransformScreenView extends ScreenView {
       },
     );
 
-    const paintFocal = () => {
-      if (!model.swapProperty.value) {
+    const displayLink = Multilink.lazyMultilinkAny(
+      [
+        model.phaseProperty,
+        model.logProperty,
+        model.tintProperty,
+        model.exposureProperty,
+        model.wavelengthProperty,
+        model.zoomProperty,
+      ],
+      () => model.inputsChangedEmitter.emit(),
+    );
+    this.scheduler = new FrameRecomputeScheduler(model.inputsChangedEmitter, () =>
+      model.submit((ops) => {
+        model.recompute(ops);
+        if (model.swapProperty.value) {
+          const pictures = swappedImages.map(({ image, field }) => image.capture(ops, field(), "intensity"));
+          return () => {
+            for (const paint of pictures) {
+              paint();
+            }
+          };
+        }
+        const crop = zoomCrop(L.focalBins, model.zoomProperty.value, model.size);
         const mode = model.phaseProperty.value ? "phase" : model.logProperty.value ? "log" : "intensity";
-        focalImage.update(
+        const aperture = apertureImage.capture(ops, model.object, "amplitude");
+        const focal = focalImage.capture(
+          ops,
+          model.spectrum,
           mode,
+          crop,
           model.exposureProperty.value,
           model.tintProperty.value ? model.wavelengthProperty.value : undefined,
         );
-      }
-    };
-    const displayLink = Multilink.lazyMultilink(
-      [model.phaseProperty, model.logProperty, model.tintProperty, model.exposureProperty, model.wavelengthProperty],
-      paintFocal,
+        const row = ops.readRow(model.spectrum, crop);
+        return () => {
+          aperture();
+          focal();
+          updateProfile(row, profileLine, profileTransform);
+        };
+      }),
     );
-    this.scheduler = new FrameRecomputeScheduler(model.inputsChangedEmitter, () => {
-      model.recompute();
-      if (model.swapProperty.value) {
-        for (const { image } of swappedImages) {
-          image.updateScale();
-          image.update("intensity");
-        }
-      } else {
-        apertureImage.updateScale();
-        apertureImage.update("amplitude");
-        focalImage.updateScale();
-        paintFocal();
-        updateProfile(model, profileLine, profileTransform);
-      }
-    });
 
     content.disposeEmitter.addListener(() => {
       this.scheduler.dispose();
       visibility.dispose();
       displayLink.dispose();
+      model.apertureProperty.unlink(presetZoom);
     });
   }
 
@@ -282,19 +312,17 @@ export class FourierTransformScreenView extends ScreenView {
   }
 }
 
-function updateProfile(model: FourierTransformModel, line: Path, transform: ModelViewTransform2): void {
-  const { size, data } = model.spectrum;
-  const row = size * (size / 2);
-  const first = (size - L.focalBins) / 2;
-  const dc = Math.abs(data[2 * (row + size / 2)] ?? 0);
+function updateProfile(data: Float32Array, line: Path, transform: ModelViewTransform2): void {
+  const crop = data.length / 2;
+  const dc = Math.abs(data[2 * (crop / 2)] ?? 0);
   const norm = dc > 0 ? 1 / (dc * dc) : 0;
   const shape = new Shape();
-  for (let x = 0; x < L.focalBins; x++) {
-    const index = 2 * (row + first + x);
+  for (let x = 0; x < crop; x++) {
+    const index = 2 * x;
     const real = data[index] ?? 0;
     const imaginary = data[index + 1] ?? 0;
     const y = Math.min(1, (real * real + imaginary * imaginary) * norm);
-    const viewX = transform.modelToViewX(x);
+    const viewX = transform.modelToViewX((x * (L.focalBins - 1)) / (crop - 1));
     const viewY = transform.modelToViewY(y);
     if (x === 0) {
       shape.moveTo(viewX, viewY);

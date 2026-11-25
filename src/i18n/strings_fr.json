@@ -57,7 +57,25 @@
     }
   },
   "preferences": {
-    "title": "Simulation"
+    "title": "Simulation",
+    "backend": "Moteur de calcul",
+    "resolution": "Résolution de la grille",
+    "automatic": "Automatique",
+    "gpu": "GPU",
+    "cpu": "CPU",
+    "fallback": "CPU de secours",
+    "badge": "{{backend}} · {{size}}²",
+    "badgeA11y": "Moteur de calcul {{backend}}, grille de {{size}} par {{size}} échantillons.",
+    "unavailable": "WebGPU est indisponible. La simulation utilise le CPU.",
+    "dismiss": "Fermer",
+    "zoom": "Zoom du spectre",
+    "zoom1": "×1",
+    "zoom2": "×2",
+    "zoom4": "×4",
+    "zoom8": "×8",
+    "resolution256": "256²",
+    "resolution512": "512²",
+    "resolution1024": "1024²"
   },
   "common": {
     "object": "Objet",

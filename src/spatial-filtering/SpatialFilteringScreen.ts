@@ -15,18 +15,19 @@ import { Screen } from "scenerystack/sim";
 import type { Tandem } from "scenerystack/tandem";
 import { createSpatialFilteringIcon } from "../common/FourierOpticsScreenIcons.js";
 import FourierOpticsColors from "../FourierOpticsColors.js";
+import type { FourierOpticsPreferencesModel } from "../preferences/FourierOpticsPreferencesModel.js";
 import { SpatialFilteringModel } from "./model/SpatialFilteringModel.js";
 import { SpatialFilteringKeyboardHelpContent } from "./view/SpatialFilteringKeyboardHelpContent.js";
 import { SpatialFilteringScreenView } from "./view/SpatialFilteringScreenView.js";
 
 // Require tandem to be explicit — accidental omission would break PhET-iO.
-type SpatialFilteringScreenOptions = ScreenOptions & { tandem: Tandem };
+type SpatialFilteringScreenOptions = ScreenOptions & { tandem: Tandem; preferences?: FourierOpticsPreferencesModel };
 
 export class SpatialFilteringScreen extends Screen<SpatialFilteringModel, SpatialFilteringScreenView> {
   public constructor(options: SpatialFilteringScreenOptions) {
     super(
       // Model factory — called once when the screen is first shown
-      () => new SpatialFilteringModel(),
+      () => new SpatialFilteringModel(options.preferences),
       // View factory — receives the model instance
       (model) =>
         new SpatialFilteringScreenView(model, {

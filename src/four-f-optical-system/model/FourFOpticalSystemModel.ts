@@ -1,7 +1,9 @@
-import { DerivedProperty, Emitter, Multilink, NumberProperty, Property } from "scenerystack/axon";
+import { DerivedProperty, Multilink, NumberProperty, Property } from "scenerystack/axon";
 import { Range } from "scenerystack/dot";
 import type { TModel } from "scenerystack/joist";
-import { createFourierEngine } from "../../common/fourier/createFourierEngine.js";
+import type { FourierOperations } from "../../common/fourier/FourierEngine.js";
+import { FourierScreenModel } from "../../common/fourier/FourierScreenModel.js";
+import { GridFields } from "../../common/fourier/GridFields.js";
 import { ComplexField } from "../../common/model/ComplexField.js";
 import { rasterizeImagingObject } from "../../common/model/imagingObjects.js";
 import { rasterizeMask } from "../../common/model/masks.js";
@@ -12,7 +14,14 @@ import {
   magnification,
   spatialFrequencyStep,
 } from "../../common/model/opticalSystem.js";
-import { DEFOCUS_MM, OPTICAL_PARAMETERS as O, RESOLUTION_PERIODS } from "../../FourierOpticsConstants.js";
+import {
+  DEFOCUS_MM,
+  OPTICAL_PARAMETERS as O,
+  RESOLUTION_PERIODS,
+  SPECTRUM_ZOOMS,
+  type SpectrumZoom,
+} from "../../FourierOpticsConstants.js";
+import type { FourierOpticsPreferencesModel } from "../../preferences/FourierOpticsPreferencesModel.js";
 
 export const SYSTEM_OBJECTS = ["letterF", "grating", "mesh", "resolutionTarget"] as const;
 export const ILLUMINATION = ["coherent", "incoherent"] as const;
@@ -20,8 +29,8 @@ export const ILLUMINATION = ["coherent", "incoherent"] as const;
 const numberProperty = ({ default: value, min, max }: { default: number; min: number; max: number }) =>
   new NumberProperty(value, { range: new Range(min, max) });
 
-export class FourFOpticalSystemModel implements TModel {
-  public readonly size = O.gridSize.default;
+export class FourFOpticalSystemModel extends FourierScreenModel implements TModel {
+  public readonly zoomProperty = new Property<SpectrumZoom>(2, { validValues: SPECTRUM_ZOOMS });
   public readonly pitchUm = O.pitchUm.default;
   public readonly objectProperty = new Property<(typeof SYSTEM_OBJECTS)[number]>("resolutionTarget", {
     validValues: SYSTEM_OBJECTS,
@@ -44,19 +53,29 @@ export class FourFOpticalSystemModel implements TModel {
     (coherent, incoherent, illumination) => 1 / (illumination === "coherent" ? coherent : incoherent),
   );
   public readonly pupilRadiusProperty = new DerivedProperty(
-    [this.coherentCutoffProperty],
-    (cutoff) => cutoff / spatialFrequencyStep(this.size, this.pitchUm),
+    [this.coherentCutoffProperty, this.sizeProperty],
+    (cutoff, size) => cutoff / spatialFrequencyStep(size, this.pitchUm),
   );
 
-  public readonly inputsChangedEmitter = new Emitter();
-  public readonly object = new ComplexField(this.size);
-  public readonly spectrum = new ComplexField(this.size);
-  public readonly image = new ComplexField(this.size);
-  public readonly camera = new ComplexField(this.size);
-  private readonly scratch = new ComplexField(this.size);
-  private readonly engine = createFourierEngine(this.size);
-  private readonly intensity = new Float32Array(this.size * this.size);
-  private lastObject: typeof this.objectProperty.value | undefined;
+  public get object(): ComplexField {
+    return this.fields.get("object", this.size);
+  }
+  public get spectrum(): ComplexField {
+    return this.fields.get("spectrum", this.size);
+  }
+  public get image(): ComplexField {
+    return this.fields.get("image", this.size);
+  }
+  public get camera(): ComplexField {
+    return this.fields.get("camera", this.size);
+  }
+  private get scratch(): ComplexField {
+    return this.fields.get("scratch", this.size);
+  }
+  private intensity = new Float32Array(0);
+  private lastRaster: { kind: (typeof SYSTEM_OBJECTS)[number]; field: ComplexField } | undefined;
+  private cpuSpectrum: ComplexField | undefined;
+  private lastPupil: { key: string; aperture: Float32Array; phased: Float32Array; transfer?: Float32Array } | undefined;
   private readonly resettable = [
     this.objectProperty,
     ...this.cutoffInputs,
@@ -66,54 +85,82 @@ export class FourFOpticalSystemModel implements TModel {
   ];
   private readonly inputLink = Multilink.lazyMultilinkAny(this.resettable, () => this.inputsChangedEmitter.emit());
 
-  public recompute(): Float32Array {
+  private readonly fields = new GridFields("object", "spectrum", "image", "camera", "scratch");
+
+  public constructor(preferences?: FourierOpticsPreferencesModel) {
+    super(preferences);
+  }
+
+  public recompute(ops: FourierOperations = this.cpu): Float32Array {
     const kind = this.objectProperty.value;
-    if (kind !== this.lastObject) {
+    const field = this.object;
+    if (kind !== this.lastRaster?.kind || field !== this.lastRaster.field) {
       if (kind === "resolutionTarget") {
-        rasterizeResolutionTarget(this.object);
+        rasterizeResolutionTarget(field);
       } else {
-        rasterizeImagingObject(kind, this.object, this.scratch);
+        rasterizeImagingObject(kind, field, this.scratch);
       }
-      this.engine.forward(this.object, this.spectrum);
-      this.lastObject = kind;
+      this.lastRaster = { kind, field };
+      this.cpuSpectrum = undefined;
+    }
+    if (this.engineInfoProperty.value.backend === "webgpu" || this.cpuSpectrum !== this.spectrum) {
+      ops.forward(field, this.spectrum);
+      this.cpuSpectrum = this.engineInfoProperty.value.backend === "cpu" ? this.spectrum : undefined;
     }
 
     const radius = this.pupilRadiusProperty.value;
-    const pupil = rasterizeMask({ kind: "lowPass", radius }, this.size);
-    // A fully closed iris passes no light, including at zero frequency.
-    if (radius === 0) {
-      pupil.fill(0);
-    }
     const scale = Math.abs(this.magnificationProperty.value);
     const distance = this.defocusProperty.value;
-    const transfer =
-      distance === 0
-        ? undefined
-        : angularSpectrumTransfer(this.size, this.pitchUm * scale, this.wavelengthProperty.value, distance);
-
-    if (this.illuminationProperty.value === "coherent") {
-      this.engine.filterAndInverse(this.spectrum, pupil, this.image, "4f");
-      if (transfer) {
-        this.engine.propagate(this.image, transfer, this.image);
+    const wavelength = this.wavelengthProperty.value;
+    // f2 only changes the OTF when defocus changes the effective image-plane pitch.
+    const key = [
+      this.size,
+      this.pitchUm,
+      this.irisProperty.value,
+      wavelength,
+      this.f1Property.value,
+      distance,
+      distance === 0 ? 0 : scale,
+    ].join("/");
+    if (key !== this.lastPupil?.key) {
+      const aperture = rasterizeMask({ kind: "lowPass", radius }, this.size);
+      if (radius === 0) {
+        aperture.fill(0);
       }
-      resampleCamera(this.image.intensity(), this.camera, scale);
-    } else {
-      // Defocus phases the amplitude pupil before its autocorrelation forms the OTF.
-      const phasedPupil = transfer ? new ComplexField(this.size, pupil) : undefined;
-      phasedPupil?.multiplyByMask(transfer ?? pupil);
-      this.engine.imageThroughSystem(this.object.intensity(), phasedPupil?.data ?? pupil, this.intensity, "4f");
-      resampleCamera(this.intensity, this.camera, scale);
+      if (distance === 0) {
+        this.lastPupil = { key, aperture, phased: aperture };
+      } else {
+        const transfer = angularSpectrumTransfer(this.size, this.pitchUm * scale, wavelength, distance);
+        const phased = new ComplexField(this.size, aperture);
+        phased.multiplyByMask(transfer);
+        this.lastPupil = { key, aperture, phased: phased.data, transfer };
+      }
     }
-    return pupil;
+    const { aperture, phased, transfer } = this.lastPupil;
+    if (this.illuminationProperty.value === "coherent") {
+      ops.filterAndInverse(this.spectrum, aperture, this.image, "4f");
+      if (transfer) {
+        ops.propagate(this.image, transfer, this.image);
+      }
+      ops.camera(this.image, this.camera, scale);
+    } else {
+      if (this.intensity.length !== this.size ** 2) {
+        this.intensity = new Float32Array(this.size ** 2);
+      }
+      ops.imageThroughSystem(field.intensity(), phased, this.intensity, "4f", key);
+      ops.camera(this.intensity, this.camera, scale);
+    }
+    return aperture;
   }
 
   public reset(): void {
     for (const property of this.resettable) {
       property.reset();
     }
+    this.zoomProperty.reset();
   }
 
-  public dispose(): void {
+  public override dispose(): void {
     this.inputLink.dispose();
     for (const property of [
       this.pupilRadiusProperty,
@@ -125,8 +172,8 @@ export class FourFOpticalSystemModel implements TModel {
     ]) {
       property.dispose();
     }
-    this.inputsChangedEmitter.dispose();
-    this.engine.dispose();
+    this.zoomProperty.dispose();
+    super.dispose();
   }
 }
 
@@ -140,27 +187,6 @@ function rasterizeResolutionTarget(field: ComplexField): void {
     const envelope = Math.sin(Math.PI * (y / height - group)) ** 2;
     for (let x = 0; x < size; x++) {
       field.set(x, y, 0.5 * (1 + envelope * Math.cos((2 * Math.PI * x) / period)));
-    }
-  }
-}
-
-/** Sample camera intensity on a fixed physical field of view, centered on the optical axis. */
-function resampleCamera(intensity: Float32Array, camera: ComplexField, scale: number): void {
-  const { size } = camera;
-  const centre = size / 2;
-  const at = (x: number, y: number) =>
-    x >= 0 && x < size && y >= 0 && y < size ? Math.max(0, intensity[y * size + x] ?? 0) : 0;
-  for (let y = 0; y < size; y++) {
-    const sourceY = (y - centre) / scale + centre;
-    const row = Math.floor(sourceY);
-    const dy = sourceY - row;
-    for (let x = 0; x < size; x++) {
-      const sourceX = (x - centre) / scale + centre;
-      const column = Math.floor(sourceX);
-      const dx = sourceX - column;
-      const top = (1 - dx) * at(column, row) + dx * at(column + 1, row);
-      const bottom = (1 - dx) * at(column, row + 1) + dx * at(column + 1, row + 1);
-      camera.set(x, y, Math.sqrt((1 - dy) * top + dy * bottom));
     }
   }
 }

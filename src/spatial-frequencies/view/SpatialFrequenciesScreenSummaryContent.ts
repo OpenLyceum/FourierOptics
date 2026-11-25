@@ -2,6 +2,7 @@ import { DerivedProperty, type TReadOnlyProperty } from "scenerystack/axon";
 import { toFixed } from "scenerystack/dot";
 import { StringUtils } from "scenerystack/phetcommon";
 import { ScreenSummaryContent } from "scenerystack/sim";
+import { zoomCrop } from "../../common/view/spectrumZoom.js";
 import { GRATING_PARAMETERS, OPTICS_LAYOUT as L } from "../../FourierOpticsConstants.js";
 import { StringManager } from "../../i18n/StringManager.js";
 import type { SpatialFrequenciesModel } from "../model/SpatialFrequenciesModel.js";
@@ -45,7 +46,7 @@ export class SpatialFrequenciesScreenSummaryContent extends ScreenSummaryContent
         return StringUtils.fillIn(a11y.currentDetailsStringProperty.value, {
           count: active.length,
           readouts: active.map((readout) => `${readout.value}.`).join(" "),
-          limit: toFixed((model.frequencyStep * L.spectrumBins) / 2, 3),
+          limit: toFixed((model.frequencyStep * zoomCrop(L.spectrumBins, 1, model.size)) / 2, 3),
         });
       },
     );

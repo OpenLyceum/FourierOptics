@@ -42,7 +42,7 @@ describe("centred CPU Fourier optics", () => {
     const size = 64;
     const engine: FourierEngine = new CpuFourierEngine(size);
     const field = planeWave(size, 7, -3);
-    engine.forward(field, field);
+    expect(engine.submit((ops) => ops.forward(field, field))).toBeUndefined();
     expect(engine.backend).toBe("cpu");
     expect(peakIndices(field.amplitude(), 1e-3)).toEqual([(32 - 3) * size + 32 + 7]);
     const [real, imaginary] = field.get(39, 29);

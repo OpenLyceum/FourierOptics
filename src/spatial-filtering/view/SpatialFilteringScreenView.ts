@@ -6,10 +6,12 @@ import { ScreenView, type ScreenViewOptions } from "scenerystack/sim";
 import { FLAT_RESET_ALL_BUTTON_OPTIONS } from "../../common/FourierOpticsButtonOptions.js";
 import { FourierOpticsPanel } from "../../common/FourierOpticsPanel.js";
 import { FILTER_OBJECTS } from "../../common/model/imagingObjects.js";
-import { checkbox, combo, heading, label, numberControl } from "../../common/view/controls.js";
+import { backendStatus } from "../../common/view/backendStatus.js";
+import { checkbox, combo, heading, label, numberControl, zoomControl } from "../../common/view/controls.js";
 import { FieldImageNode } from "../../common/view/FieldImageNode.js";
 import { FrameRecomputeScheduler } from "../../common/view/FrameRecomputeScheduler.js";
 import { MaskEditorNode } from "../../common/view/MaskEditorNode.js";
+import { zoomCrop } from "../../common/view/spectrumZoom.js";
 import Colors from "../../FourierOpticsColors.js";
 import { IMAGING_LAYOUT as I, OPTICS_LAYOUT as L, SCREEN_VIEW_MARGIN } from "../../FourierOpticsConstants.js";
 import { StringManager } from "../../i18n/StringManager.js";
@@ -30,9 +32,15 @@ export class SpatialFilteringScreenView extends ScreenView {
     const captions = manager.getFilterCaptions();
     const transform = manager.getTransformStrings();
 
-    const object = new FieldImageNode(model.object, I.fieldSize);
-    const spectrum = new FieldImageNode(model.spectrum, I.fieldSize, I.filterBins);
-    const result = new FieldImageNode(model.reconstructed, I.fieldSize);
+    const presetZoom = (value: typeof model.presetProperty.value) => {
+      if (value !== "custom") {
+        model.zoomProperty.value = value === "phaseContrast" || value === "darkField" ? 4 : 2;
+      }
+    };
+    model.presetProperty.link(presetZoom);
+    const object = new FieldImageNode(I.fieldSize);
+    const spectrum = new FieldImageNode(I.fieldSize);
+    const result = new FieldImageNode(I.fieldSize);
     const editor = new MaskEditorNode(I.fieldSize, I.filterBins, model.size, {
       radiusProperty: model.radiusProperty,
       innerRadiusProperty: model.innerRadiusProperty,
@@ -68,6 +76,7 @@ export class SpatialFilteringScreenView extends ScreenView {
       children: [
         checkbox(strings.logStringProperty, model.logProperty),
         checkbox(transform.phaseStringProperty, model.phaseProperty),
+        zoomControl(model.zoomProperty),
       ],
     });
     const brush = new VBox({
@@ -141,30 +150,51 @@ export class SpatialFilteringScreenView extends ScreenView {
         editor.reset();
       },
     });
-    const content = new Node({ children: [body, reset, popup], pdomOrder: [controls, editor, reset] });
+    const status = backendStatus(model, this.layoutBounds);
+    const content = new Node({ children: [body, reset, popup, status], pdomOrder: [status, controls, editor, reset] });
     this.addChild(content);
 
-    const updateSpectrum = () =>
-      spectrum.update(model.phaseProperty.value ? "phase" : model.logProperty.value ? "log" : "intensity");
-    const displayLink = Multilink.lazyMultilinkAny([model.logProperty, model.phaseProperty], updateSpectrum);
+    const displayLink = Multilink.lazyMultilinkAny([model.logProperty, model.phaseProperty, model.zoomProperty], () =>
+      model.inputsChangedEmitter.emit(),
+    );
     const showBrush = (kind: typeof model.filterProperty.value) => {
       brush.visible = kind === "painted";
     };
     model.filterProperty.link(showBrush);
-    this.scheduler = new FrameRecomputeScheduler(model.inputsChangedEmitter, () => {
-      const transmission = model.recompute();
-      object.updateScale();
-      object.update(model.objectProperty.value === "phaseDisk" ? "phase" : "intensity");
-      spectrum.updateScale();
-      updateSpectrum();
-      editor.update(model.getMask(), transmission);
-      result.updateScale();
-      result.update("intensity");
-    });
+    this.scheduler = new FrameRecomputeScheduler(
+      model.inputsChangedEmitter,
+      () =>
+        model.submit((ops) => {
+          const transmission = model.recompute(ops, true);
+          const readout = model.capturePower(ops);
+          const crop = zoomCrop(I.filterBins, model.zoomProperty.value);
+          const mode = model.phaseProperty.value ? "phase" : model.logProperty.value ? "log" : "intensity";
+          const paintObject = object.capture(
+            ops,
+            model.object,
+            model.objectProperty.value === "phaseDisk" ? "phase" : "intensity",
+          );
+          const paintSpectrum = spectrum.capture(ops, model.spectrum, mode, crop);
+          const paintResult = result.capture(ops, model.reconstructed, "intensity");
+          const mask = model.getMask();
+          const size = model.size;
+          return () => {
+            readout();
+            paintObject();
+            paintSpectrum();
+            editor.update(mask, transmission, crop, size);
+            paintResult();
+          };
+        }),
+      model.preferences?.timing
+        ? () => `screen3 ${model.engineInfoProperty.value.backend} ${model.size} coherent`
+        : undefined,
+    );
     content.disposeEmitter.addListener(() => {
       this.scheduler.dispose();
       model.filterProperty.unlink(showBrush);
       displayLink.dispose();
+      model.presetProperty.unlink(presetZoom);
       objectHeadingProperty.dispose();
       powerLabelProperty.dispose();
       powerProperty.dispose();

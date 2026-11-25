@@ -1,6 +1,7 @@
 import { DerivedProperty } from "scenerystack/axon";
 import { StringUtils } from "scenerystack/phetcommon";
 import { ScreenSummaryContent } from "scenerystack/sim";
+import { zoomCrop } from "../../common/view/spectrumZoom.js";
 import { OPTICS_LAYOUT as L } from "../../FourierOpticsConstants.js";
 import { StringManager } from "../../i18n/StringManager.js";
 import { APERTURE_DIMENSIONS, type FourierTransformModel } from "../model/FourierTransformModel.js";
@@ -21,6 +22,8 @@ export class FourierTransformScreenSummaryContent extends ScreenSummaryContent {
         model.focalLengthProperty,
         model.pitchProperty,
         model.focalStepProperty,
+        model.sizeProperty,
+        model.zoomProperty,
         ...Object.values(model.dimensions),
         ...Object.values(apertures),
         ...Object.values(dimensions),
@@ -43,7 +46,9 @@ export class FourierTransformScreenSummaryContent extends ScreenSummaryContent {
           wavelength: model.wavelengthProperty.value,
           focalLength: model.focalLengthProperty.value,
           pitch: model.pitchProperty.value,
-          span: (model.focalStepProperty.value * L.focalBins).toPrecision(3),
+          span: (
+            model.focalStepProperty.value * zoomCrop(L.focalBins, model.zoomProperty.value, model.size)
+          ).toPrecision(3),
         });
       },
     );

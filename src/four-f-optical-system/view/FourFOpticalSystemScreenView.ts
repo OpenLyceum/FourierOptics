@@ -7,11 +7,13 @@ import { AquaRadioButtonGroup } from "scenerystack/sun";
 import { Tandem } from "scenerystack/tandem";
 import { FLAT_RESET_ALL_BUTTON_OPTIONS } from "../../common/FourierOpticsButtonOptions.js";
 import { FourierOpticsPanel } from "../../common/FourierOpticsPanel.js";
-import { combo, heading, label, numberControl } from "../../common/view/controls.js";
+import { backendStatus } from "../../common/view/backendStatus.js";
+import { combo, heading, label, numberControl, zoomControl } from "../../common/view/controls.js";
 import { FieldImageNode } from "../../common/view/FieldImageNode.js";
 import { FrameRecomputeScheduler } from "../../common/view/FrameRecomputeScheduler.js";
 import { LensSchematicNode } from "../../common/view/LensSchematicNode.js";
 import { MaskEditorNode } from "../../common/view/MaskEditorNode.js";
+import { zoomCrop } from "../../common/view/spectrumZoom.js";
 import { IMAGING_LAYOUT as I, OPTICS_LAYOUT as L, SCREEN_VIEW_MARGIN } from "../../FourierOpticsConstants.js";
 import { StringManager } from "../../i18n/StringManager.js";
 import { type FourFOpticalSystemModel, ILLUMINATION, SYSTEM_OBJECTS } from "../model/FourFOpticalSystemModel.js";
@@ -29,6 +31,12 @@ export class FourFOpticalSystemScreenView extends ScreenView {
     const filtering = manager.getFilteringStrings();
     const objects = manager.getImagingObjectStrings();
 
+    const presetZoom = (value: typeof model.objectProperty.value) => {
+      model.zoomProperty.value = value === "letterF" ? 4 : 2;
+    };
+    model.objectProperty.link(presetZoom);
+    const displayChanged = () => model.inputsChangedEmitter.emit();
+    model.zoomProperty.lazyLink(displayChanged);
     const diagram = new LensSchematicNode({
       f1: model.f1Property,
       f2: model.f2Property,
@@ -50,10 +58,10 @@ export class FourFOpticalSystemScreenView extends ScreenView {
       irisName: a11y.irisStringProperty,
       irisHelp: a11y.irisHelpStringProperty,
     });
-    const object = new FieldImageNode(model.object, I.fieldSize);
-    const spectrum = new FieldImageNode(model.spectrum, I.fieldSize, I.irisBins);
+    const object = new FieldImageNode(I.fieldSize);
+    const spectrum = new FieldImageNode(I.fieldSize);
     const iris = new MaskEditorNode(I.fieldSize, I.irisBins, model.size);
-    const camera = new FieldImageNode(model.camera, I.fieldSize);
+    const camera = new FieldImageNode(I.fieldSize);
 
     const picture = (title: Parameters<typeof heading>[0], image: Node, detail: Parameters<typeof label>[0]) =>
       new FourierOpticsPanel(
@@ -121,7 +129,12 @@ export class FourFOpticalSystemScreenView extends ScreenView {
       new HBox({
         spacing: L.gap,
         align: "top",
-        children: [objectChoice, lensControls, irisControls, illumControls],
+        children: [
+          new VBox({ align: "left", spacing: L.smallGap, children: [objectChoice, zoomControl(model.zoomProperty)] }),
+          lensControls,
+          irisControls,
+          illumControls,
+        ],
       }),
     );
 
@@ -171,20 +184,35 @@ export class FourFOpticalSystemScreenView extends ScreenView {
         model.reset();
       },
     });
-    const content = new Node({ children: [body, reset, popup], pdomOrder: [controls, diagram, reset] });
+    const status = backendStatus(model, this.layoutBounds);
+    const content = new Node({ children: [body, reset, popup, status], pdomOrder: [status, controls, diagram, reset] });
     this.addChild(content);
-    this.scheduler = new FrameRecomputeScheduler(model.inputsChangedEmitter, () => {
-      const pupil = model.recompute();
-      object.updateScale();
-      object.update("intensity");
-      spectrum.updateScale();
-      spectrum.update("log");
-      iris.update({ kind: "lowPass", radius: model.pupilRadiusProperty.value }, pupil);
-      camera.updateScale();
-      camera.update("intensity");
-    });
+    this.scheduler = new FrameRecomputeScheduler(
+      model.inputsChangedEmitter,
+      () =>
+        model.submit((ops) => {
+          const pupil = model.recompute(ops);
+          const crop = zoomCrop(I.irisBins, model.zoomProperty.value, model.size);
+          const size = model.size;
+          const radius = model.pupilRadiusProperty.value;
+          const paintObject = object.capture(ops, model.object, "intensity");
+          const paintSpectrum = spectrum.capture(ops, model.spectrum, "log", crop);
+          const paintCamera = camera.capture(ops, model.camera, "intensity");
+          return () => {
+            paintObject();
+            paintSpectrum();
+            iris.update({ kind: "lowPass", radius }, pupil, crop, size);
+            paintCamera();
+          };
+        }),
+      model.preferences?.timing
+        ? () => `screen4 ${model.engineInfoProperty.value.backend} ${model.size} ${model.illuminationProperty.value}`
+        : undefined,
+    );
     content.disposeEmitter.addListener(() => {
       this.scheduler.dispose();
+      model.objectProperty.unlink(presetZoom);
+      model.zoomProperty.unlink(displayChanged);
       model.illuminationProperty.unlink(updateIllumination);
       for (const property of [
         mTextProperty,

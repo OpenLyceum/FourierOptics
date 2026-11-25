@@ -65,9 +65,10 @@ describeDisposalLeaks([
     create: () => {
       const field = new ComplexField(64);
       field.fill(1);
-      const image = new FieldImageNode(field, 100);
-      image.updateScale();
-      image.update("log", 50, 550);
+      const image = new FieldImageNode(100);
+      const engine = new CpuFourierEngine(field.size);
+      engine.submit((ops) => image.capture(ops, field, "log", field.size, 50, 550))();
+      engine.dispose();
       const context = document.createElement("canvas").getContext("2d");
       if (context) {
         image.paintCanvas(context);
@@ -77,7 +78,7 @@ describeDisposalLeaks([
   },
   {
     name: "FrameRecomputeScheduler",
-    create: () => new FrameRecomputeScheduler(spatialModel.inputsChangedEmitter, () => spatialModel.recompute()),
+    create: () => new FrameRecomputeScheduler(spatialModel.inputsChangedEmitter, () => () => spatialModel.recompute()),
     keepAlive: () => [spatialModel],
   },
   {

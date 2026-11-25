@@ -97,7 +97,7 @@ describe("SpatialFilteringModel", () => {
 
   it("coalesces brush strokes by frame, erases bins, and resets all inputs and paint", () => {
     let updates = 0;
-    const scheduler = new FrameRecomputeScheduler(model.inputsChangedEmitter, () => {
+    const scheduler = new FrameRecomputeScheduler(model.inputsChangedEmitter, () => () => {
       updates++;
     });
     model.filterProperty.value = "painted";

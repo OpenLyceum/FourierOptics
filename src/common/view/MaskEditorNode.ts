@@ -1,7 +1,7 @@
 import type { NumberProperty } from "scenerystack/axon";
 import { Bounds2, clamp, Vector2 } from "scenerystack/dot";
 import { Shape } from "scenerystack/kite";
-import { ModelViewTransform2 } from "scenerystack/phetcommon";
+import type { ModelViewTransform2 } from "scenerystack/phetcommon";
 import {
   CanvasNode,
   Circle,
@@ -19,6 +19,7 @@ import { IMAGING_LAYOUT as I, OPTICS_LAYOUT as L } from "../../FourierOpticsCons
 import { StringManager } from "../../i18n/StringManager.js";
 import type { MaskSpec } from "../model/masks.js";
 import { OpticsDragHandle } from "./OpticsDragHandle.js";
+import { spectrumTransform } from "./spectrumZoom.js";
 
 const a11y = StringManager.getInstance().getSpatialFilteringA11yStrings();
 export const BRUSH_STAMP_HOTKEY = new HotkeyData({
@@ -42,21 +43,16 @@ type MaskEditing = {
 export class MaskEditorNode extends Node {
   private readonly shade: MaskShade;
   private readonly outline: Path;
-  private readonly binTransform: ModelViewTransform2;
-  private readonly angleRadius: number;
+  private binTransform: ModelViewTransform2;
+  private readonly drawSize: number;
+  private refreshBrush: (() => void) | undefined;
   private readonly updateHandles: ((spec: MaskSpec) => void) | undefined;
   private resetCursor: (() => void) | undefined;
 
   public constructor(drawSize: number, cropSize: number, size: number, editing?: MaskEditing) {
     super({ clipArea: Shape.rect(0, 0, drawSize, drawSize), pickable: editing ? null : false });
-    const pixelsPerBin = drawSize / cropSize;
-    const dc = drawSize / 2 + pixelsPerBin / 2;
-    this.binTransform = ModelViewTransform2.createSinglePointScaleMapping(
-      Vector2.ZERO,
-      new Vector2(dc, dc),
-      pixelsPerBin,
-    );
-    this.angleRadius = I.angleHandleRadius;
+    this.drawSize = drawSize;
+    this.binTransform = spectrumTransform(drawSize, cropSize);
     this.shade = new MaskShade(drawSize, cropSize, size);
     this.outline = new Path(null, {
       stroke: Colors.maskOutlineColorProperty,
@@ -67,7 +63,12 @@ export class MaskEditorNode extends Node {
     this.updateHandles = editing ? this.createTools(editing, drawSize) : undefined;
   }
 
-  public update(spec: MaskSpec, transmission: Float32Array): void {
+  public update(spec: MaskSpec, transmission: Float32Array, crop = this.shade.cropSize, size = this.shade.size): void {
+    if (crop !== this.shade.cropSize || size !== this.shade.size) {
+      this.binTransform = spectrumTransform(this.drawSize, crop);
+      this.shade.setGrid(crop, size);
+      this.refreshBrush?.();
+    }
     this.shade.update(transmission);
     this.updateHandles?.(spec);
     const centre = this.binTransform.modelToViewPosition(Vector2.ZERO);
@@ -158,7 +159,7 @@ export class MaskEditorNode extends Node {
       } else if (spec.kind === "slit") {
         width.translation = this.binTransform.modelToViewPosition(Vector2.createPolar(spec.width / 2, spec.angle));
         angle.translation = this.binTransform.modelToViewPosition(
-          Vector2.createPolar(this.angleRadius, spec.angle + Math.PI / 2),
+          Vector2.createPolar(this.binTransform.viewToModelDeltaX(I.angleHandleRadius), spec.angle + Math.PI / 2),
         );
       }
     };
@@ -182,9 +183,9 @@ export class MaskEditorNode extends Node {
     target.addChild(ring);
     this.addChild(target);
     let point = Vector2.ZERO;
-    const low = this.binTransform.viewToModelPosition(Vector2.ZERO).plusXY(0.5, 0.5);
-    const high = this.binTransform.viewToModelPosition(new Vector2(drawSize, drawSize)).minusXY(0.5, 0.5);
     const move = (next: Vector2) => {
+      const low = this.binTransform.viewToModelPosition(Vector2.ZERO).plusXY(0.5, 0.5);
+      const high = this.binTransform.viewToModelPosition(new Vector2(drawSize, drawSize)).minusXY(0.5, 0.5);
       point = new Vector2(clamp(next.x, low.x, high.x), clamp(next.y, low.y, high.y));
       ring.translation = this.binTransform.modelToViewPosition(point);
     };
@@ -195,15 +196,13 @@ export class MaskEditorNode extends Node {
     };
     const pointer = new DragListener({
       applyOffset: false,
-      transform: this.binTransform,
-      start: (_event, drag) => paint(drag.modelPoint, false),
-      drag: (_event, drag) => paint(drag.modelPoint, true),
+      start: (_event, drag) => paint(this.binTransform.viewToModelPosition(drag.parentPoint), false),
+      drag: (_event, drag) => paint(this.binTransform.viewToModelPosition(drag.parentPoint), true),
     });
     const keyboard = new KeyboardDragListener({
-      transform: this.binTransform,
       dragDelta: L.handleStep,
       shiftDragDelta: L.fineHandleStep,
-      drag: (_event, drag) => move(point.plus(drag.modelDelta)),
+      drag: (_event, drag) => move(point.plus(this.binTransform.viewToModelDelta(drag.modelDelta))),
     });
     const stamp = new KeyboardListener({
       keyStringProperties: BRUSH_STAMP_HOTKEY.keyStringProperties,
@@ -219,6 +218,10 @@ export class MaskEditorNode extends Node {
       ring.radius = this.binTransform.modelToViewDeltaX(radius);
     };
     edit.brushRadiusProperty.link(resize);
+    this.refreshBrush = () => {
+      move(point);
+      resize(edit.brushRadiusProperty.value);
+    };
     this.resetCursor = () => move(Vector2.ZERO);
     this.resetCursor();
     target.disposeEmitter.addListener(() => {
@@ -240,8 +243,8 @@ class MaskShade extends CanvasNode {
   private readonly repaint = () => this.refreshPixels();
 
   private readonly drawSize: number;
-  public readonly cropSize: number;
-  private readonly size: number;
+  public cropSize: number;
+  public size: number;
 
   public constructor(drawSize: number, cropSize: number, size: number) {
     super({ canvasBounds: new Bounds2(0, 0, drawSize, drawSize), pickable: false });
@@ -252,6 +255,13 @@ class MaskShade extends CanvasNode {
     this.imageData = this.sampleContext?.createImageData(cropSize, cropSize);
     Colors.maskShadeColorProperty.lazyLink(this.repaint);
     Colors.thirdGratingColorProperty.lazyLink(this.repaint);
+  }
+
+  public setGrid(crop: number, size: number): void {
+    this.cropSize = crop;
+    this.size = size;
+    this.sampleCanvas.width = this.sampleCanvas.height = crop;
+    this.imageData = this.sampleContext?.createImageData(crop, crop);
   }
 
   public update(transmission: Float32Array): void {

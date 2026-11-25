@@ -8,9 +8,11 @@ import { ResetAllButton } from "scenerystack/scenery-phet";
 import { ScreenView, type ScreenViewOptions } from "scenerystack/sim";
 import { FLAT_RESET_ALL_BUTTON_OPTIONS } from "../../common/FourierOpticsButtonOptions.js";
 import { FourierOpticsPanel } from "../../common/FourierOpticsPanel.js";
+import { backendStatus } from "../../common/view/backendStatus.js";
 import { checkbox, combo, heading, label, numberControl } from "../../common/view/controls.js";
 import { FieldImageNode } from "../../common/view/FieldImageNode.js";
 import { FrameRecomputeScheduler } from "../../common/view/FrameRecomputeScheduler.js";
+import { zoomCrop } from "../../common/view/spectrumZoom.js";
 import Colors from "../../FourierOpticsColors.js";
 import { OPTICS_LAYOUT as L, SCREEN_VIEW_MARGIN } from "../../FourierOpticsConstants.js";
 import { StringManager } from "../../i18n/StringManager.js";
@@ -41,16 +43,17 @@ export class SpatialFrequenciesScreenView extends ScreenView {
     );
 
     const fieldSize = L.fieldSize;
-    const limit = (model.frequencyStep * L.spectrumBins) / 2;
-    const binWidth = fieldSize / L.spectrumBins;
+    const crop = zoomCrop(L.spectrumBins, 1, model.size);
+    const limit = (model.frequencyStep * crop) / 2;
+    const binWidth = fieldSize / crop;
     const centre = fieldSize / 2 + binWidth / 2;
     const transform = ModelViewTransform2.createSinglePointScaleMapping(
       Vector2.ZERO,
       new Vector2(centre, centre),
       binWidth / model.frequencyStep,
     );
-    const objectImage = new FieldImageNode(model.object, fieldSize);
-    const spectrumImage = new FieldImageNode(model.spectrum, fieldSize, L.spectrumBins);
+    const objectImage = new FieldImageNode(fieldSize);
+    const spectrumImage = new FieldImageNode(fieldSize);
     const axes = new Path(
       new Shape()
         .moveTo(0, centre)
@@ -191,7 +194,11 @@ export class SpatialFrequenciesScreenView extends ScreenView {
       centerX: this.layoutBounds.centerX,
       top: this.layoutBounds.minY + SCREEN_VIEW_MARGIN,
     });
-    const content = new Node({ children: [interfaceRow, reset, popupLayer], pdomOrder: [panel, ...handles, reset] });
+    const status = backendStatus(model, this.layoutBounds);
+    const content = new Node({
+      children: [interfaceRow, reset, popupLayer, status],
+      pdomOrder: [status, panel, ...handles, reset],
+    });
     this.addChild(content);
 
     const visibility = Multilink.multilinkAny(
@@ -210,19 +217,29 @@ export class SpatialFrequenciesScreenView extends ScreenView {
         });
       },
     );
-    const updateSpectrum = () => spectrumImage.update("log", model.exposureProperty.value);
-    model.exposureProperty.lazyLink(updateSpectrum);
-    this.scheduler = new FrameRecomputeScheduler(model.inputsChangedEmitter, () => {
-      model.recompute();
-      objectImage.updateScale();
-      objectImage.update("amplitude");
-      spectrumImage.updateScale();
-      updateSpectrum();
-    });
+    const displayChanged = () => model.inputsChangedEmitter.emit();
+    model.exposureProperty.lazyLink(displayChanged);
+    this.scheduler = new FrameRecomputeScheduler(model.inputsChangedEmitter, () =>
+      model.submit((ops) => {
+        model.recompute(ops);
+        const paintObject = objectImage.capture(ops, model.object, "amplitude");
+        const paintSpectrum = spectrumImage.capture(
+          ops,
+          model.spectrum,
+          "log",
+          zoomCrop(L.spectrumBins, 1, model.size),
+          model.exposureProperty.value,
+        );
+        return () => {
+          paintObject();
+          paintSpectrum();
+        };
+      }),
+    );
     content.disposeEmitter.addListener(() => {
       visibility.dispose();
       this.scheduler.dispose();
-      model.exposureProperty.unlink(updateSpectrum);
+      model.exposureProperty.unlink(displayChanged);
     });
     spectrum.disposeEmitter.addListener(() => rangeProperty.dispose());
     summary.disposeEmitter.addListener(() => {

@@ -15,18 +15,19 @@ import { Screen } from "scenerystack/sim";
 import type { Tandem } from "scenerystack/tandem";
 import { createSpatialFrequenciesIcon } from "../common/FourierOpticsScreenIcons.js";
 import FourierOpticsColors from "../FourierOpticsColors.js";
+import type { FourierOpticsPreferencesModel } from "../preferences/FourierOpticsPreferencesModel.js";
 import { SpatialFrequenciesModel } from "./model/SpatialFrequenciesModel.js";
 import { SpatialFrequenciesKeyboardHelpContent } from "./view/SpatialFrequenciesKeyboardHelpContent.js";
 import { SpatialFrequenciesScreenView } from "./view/SpatialFrequenciesScreenView.js";
 
 // Require tandem to be explicit — accidental omission would break PhET-iO.
-type SpatialFrequenciesScreenOptions = ScreenOptions & { tandem: Tandem };
+type SpatialFrequenciesScreenOptions = ScreenOptions & { tandem: Tandem; preferences?: FourierOpticsPreferencesModel };
 
 export class SpatialFrequenciesScreen extends Screen<SpatialFrequenciesModel, SpatialFrequenciesScreenView> {
   public constructor(options: SpatialFrequenciesScreenOptions) {
     super(
       // Model factory — called once when the screen is first shown
-      () => new SpatialFrequenciesModel(),
+      () => new SpatialFrequenciesModel(options.preferences),
       // View factory — receives the model instance
       (model) =>
         new SpatialFrequenciesScreenView(model, {

@@ -1,19 +1,26 @@
 // biome-ignore-all lint/style/noNonNullAssertion: Internal array indices are bounded by the checked field, pupil and intensity sizes.
 import { ComplexField } from "../../model/ComplexField.js";
 import { fft2d, fftshift, ifftshift } from "../../model/fft2d.js";
-import type { FourierEngine, ImagingMode } from "../FourierEngine.js";
+import type { FourierEngine, FourierOperations, ImagingMode } from "../FourierEngine.js";
 
 /** CPU reference implementation with caller-owned inputs and outputs. */
-export class CpuFourierEngine implements FourierEngine {
+export class CpuFourierEngine implements FourierEngine, FourierOperations {
   public readonly backend = "cpu";
   public readonly size: number;
   private intensitySpectrum: ComplexField | undefined;
+  private pupilKey: string | undefined;
   private pupilCorrelation: ComplexField | undefined;
+  private otf: Float32Array | undefined;
   private disposed = false;
 
   public constructor(size: number) {
     ComplexField.checkSize(size);
     this.size = size;
+  }
+
+  public submit<T>(encode: (operations: FourierOperations) => T): T {
+    this.checkActive();
+    return encode(this);
   }
 
   public forward(input: ComplexField, outSpectrum: ComplexField): void {
@@ -47,6 +54,7 @@ export class CpuFourierEngine implements FourierEngine {
     pupil: Float32Array,
     outIntensity: Float32Array,
     mode: ImagingMode = "4f",
+    key?: string,
   ): void {
     this.checkActive();
     this.checkTransmission(pupil);
@@ -64,29 +72,7 @@ export class CpuFourierEngine implements FourierEngine {
     }
     this.transformCentred(spectrum, false);
 
-    const correlation = this.autocorrelatePupil(pupil);
-    const dc = correlation.data[0]!;
-    if (dc === 0) {
-      outIntensity.fill(0);
-      return;
-    }
-
-    const centre = Math.floor(size / 2);
-    const paddedSize = correlation.size;
-    for (let y = 0; y < size; y++) {
-      const lagY = (y - centre + paddedSize) % paddedSize;
-      for (let x = 0; x < size; x++) {
-        const lagX = (x - centre + paddedSize) % paddedSize;
-        const lag = 2 * (lagY * paddedSize + lagX);
-        const i = 2 * (y * size + x);
-        const real = spectrum.data[i]!;
-        const imaginary = spectrum.data[i + 1]!;
-        const otfReal = correlation.data[lag]! / dc;
-        const otfImaginary = correlation.data[lag + 1]! / dc;
-        spectrum.data[i] = real * otfReal - imaginary * otfImaginary;
-        spectrum.data[i + 1] = real * otfImaginary + imaginary * otfReal;
-      }
-    }
+    spectrum.multiplyByMask(this.getOtf(pupil, key));
     this.toImage(spectrum, mode);
     // Taking the real part also projects any unpaired Nyquist terms onto
     // the Hermitian component of the sampled spectrum.
@@ -95,9 +81,67 @@ export class CpuFourierEngine implements FourierEngine {
     }
   }
 
+  public swapPhase(amplitude: ComplexField, phase: ComplexField, output: ComplexField): void {
+    this.checkFields(amplitude, output);
+    this.checkFields(phase, output);
+    for (let i = 0; i < output.data.length; i += 2) {
+      const magnitude = Math.hypot(amplitude.data[i]!, amplitude.data[i + 1]!);
+      const real = phase.data[i]!;
+      const imaginary = phase.data[i + 1]!;
+      const donor = Math.hypot(real, imaginary);
+      output.data[i] = donor > 0 ? magnitude * (real / donor) : magnitude;
+      output.data[i + 1] = donor > 0 ? magnitude * (imaginary / donor) : 0;
+    }
+    this.toImage(output, "ideal");
+  }
+
+  public camera(image: ComplexField | Float32Array, output: ComplexField, scale: number): void {
+    const intensity = image instanceof ComplexField ? image.intensity() : image;
+    const { size } = output;
+    const centre = size / 2;
+    const at = (x: number, y: number) =>
+      x >= 0 && x < size && y >= 0 && y < size ? Math.max(0, intensity[y * size + x]!) : 0;
+    for (let y = 0; y < size; y++) {
+      const sourceY = (y - centre) / scale + centre;
+      const row = Math.floor(sourceY);
+      const dy = sourceY - row;
+      for (let x = 0; x < size; x++) {
+        const sourceX = (x - centre) / scale + centre;
+        const column = Math.floor(sourceX);
+        const dx = sourceX - column;
+        const top = (1 - dx) * at(column, row) + dx * at(column + 1, row);
+        const bottom = (1 - dx) * at(column, row + 1) + dx * at(column + 1, row + 1);
+        output.set(x, y, Math.sqrt((1 - dy) * top + dy * bottom));
+      }
+    }
+  }
+
+  public read(_field: ComplexField): void {
+    // CPU operations already fill the caller's arrays.
+  }
+
+  public readIntensity(_intensity: Float32Array): void {
+    // CPU operations already fill the caller's arrays.
+  }
+
+  public readRow(field: ComplexField, crop: number): Float32Array {
+    const start = 2 * (field.size * (field.size >> 1) + (field.size >> 1) - (crop >> 1));
+    return field.data.slice(start, start + 2 * crop);
+  }
+
+  public readPower(field: ComplexField): () => number {
+    const power = field.totalPower();
+    return () => power;
+  }
+
+  public display(): undefined {
+    return undefined;
+  }
+
   public dispose(): void {
     this.intensitySpectrum = undefined;
     this.pupilCorrelation = undefined;
+    this.otf = undefined;
     this.disposed = true;
   }
 
@@ -119,8 +163,14 @@ export class CpuFourierEngine implements FourierEngine {
     }
   }
 
-  private autocorrelatePupil(pupil: Float32Array): ComplexField {
+  private getOtf(pupil: Float32Array, key: string | undefined): Float32Array {
     const size = this.size;
+    this.otf ??= new Float32Array(pupil.length);
+    const otf = this.otf;
+    if (key !== undefined && key === this.pupilKey) {
+      return otf;
+    }
+    this.pupilKey = key;
     // Padding prevents overlap with periodic copies of the pupil at large lags.
     this.pupilCorrelation ??= new ComplexField(2 * size);
     const correlation = this.pupilCorrelation;
@@ -138,7 +188,24 @@ export class CpuFourierEngine implements FourierEngine {
       data[i + 1] = 0;
     }
     fft2d(correlation, true);
-    return correlation;
+    const dc = data[0]!;
+    if (dc === 0) {
+      otf.fill(0);
+      return otf;
+    }
+    const centre = Math.floor(size / 2);
+    const paddedSize = correlation.size;
+    for (let y = 0; y < size; y++) {
+      const lagY = (y - centre + paddedSize) % paddedSize;
+      for (let x = 0; x < size; x++) {
+        const lagX = (x - centre + paddedSize) % paddedSize;
+        const lag = 2 * (lagY * paddedSize + lagX);
+        const i = 2 * (y * size + x);
+        otf[i] = data[lag]! / dc;
+        otf[i + 1] = data[lag + 1]! / dc;
+      }
+    }
+    return otf;
   }
 
   private checkActive(): void {

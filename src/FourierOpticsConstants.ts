@@ -145,3 +145,11 @@ export const IMAGING_LAYOUT = {
   angleHandleRadius: 49,
   maskShadeAlpha: 97,
 } as const;
+
+export const BACKEND_CHOICES = ["auto", "cpu", "gpu"] as const;
+export const RESOLUTION_CHOICES = [256, 512, 1024] as const;
+export const DEFAULT_CPU_RESOLUTION = RESOLUTION_CHOICES[0];
+export const DEFAULT_GPU_RESOLUTION = RESOLUTION_CHOICES[1];
+export const MAX_CPU_RESOLUTION = RESOLUTION_CHOICES[1];
+export const SPECTRUM_ZOOMS = [1, 2, 4, 8] as const;
+export type SpectrumZoom = (typeof SPECTRUM_ZOOMS)[number];

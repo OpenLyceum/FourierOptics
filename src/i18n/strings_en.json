@@ -57,7 +57,25 @@
     }
   },
   "preferences": {
-    "title": "Simulation"
+    "title": "Simulation",
+    "backend": "Compute backend",
+    "resolution": "Grid resolution",
+    "automatic": "Automatic",
+    "gpu": "GPU",
+    "cpu": "CPU",
+    "fallback": "CPU fallback",
+    "badge": "{{backend}} · {{size}}²",
+    "badgeA11y": "Compute backend {{backend}}, grid {{size}} by {{size}} samples.",
+    "unavailable": "WebGPU is unavailable. The simulation is running on the CPU.",
+    "dismiss": "Dismiss",
+    "zoom": "Spectrum zoom",
+    "zoom1": "×1",
+    "zoom2": "×2",
+    "zoom4": "×4",
+    "zoom8": "×8",
+    "resolution256": "256²",
+    "resolution512": "512²",
+    "resolution1024": "1024²"
   },
   "common": {
     "object": "Object",

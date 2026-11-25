@@ -1,17 +1,21 @@
-import { BooleanProperty, DerivedProperty, Emitter, Multilink, NumberProperty, Property } from "scenerystack/axon";
+import { BooleanProperty, DerivedProperty, Multilink, NumberProperty, Property } from "scenerystack/axon";
 import { Range } from "scenerystack/dot";
 import type { TModel } from "scenerystack/joist";
-import { createFourierEngine } from "../../common/fourier/createFourierEngine.js";
+import type { FourierOperations } from "../../common/fourier/FourierEngine.js";
+import { FourierScreenModel } from "../../common/fourier/FourierScreenModel.js";
+import { GridFields } from "../../common/fourier/GridFields.js";
 import { type ApertureSpec, rasterizeAperture } from "../../common/model/apertures.js";
-import { ComplexField } from "../../common/model/ComplexField.js";
-import { rasterizeMask } from "../../common/model/masks.js";
+import type { ComplexField } from "../../common/model/ComplexField.js";
 import { focalPlaneCoordinate, spatialFrequencyStep } from "../../common/model/opticalSystem.js";
 import {
   APERTURE_PARAMETERS,
   EXPOSURE_DB,
   OPTICAL_PARAMETERS,
   PHASE_COMPARISON_DIMENSIONS,
+  SPECTRUM_ZOOMS,
+  type SpectrumZoom,
 } from "../../FourierOpticsConstants.js";
+import type { FourierOpticsPreferencesModel } from "../../preferences/FourierOpticsPreferencesModel.js";
 
 export const APERTURE_KINDS = [
   "slit",
@@ -68,8 +72,8 @@ function apertureSpec(kind: ApertureKind, dimensions: ApertureDimensions): Apert
   }
 }
 
-export class FourierTransformModel implements TModel {
-  public readonly size = O.gridSize.default;
+export class FourierTransformModel extends FourierScreenModel implements TModel {
+  public readonly zoomProperty = new Property<SpectrumZoom>(2, { validValues: SPECTRUM_ZOOMS });
   public readonly apertureProperty = new Property<ApertureKind>("circle", { validValues: APERTURE_KINDS });
   public readonly objectAProperty = new Property<ApertureKind>("letterF", { validValues: APERTURE_KINDS });
   public readonly objectBProperty = new Property<ApertureKind>("cross", { validValues: APERTURE_KINDS });
@@ -91,23 +95,35 @@ export class FourierTransformModel implements TModel {
   public readonly tintProperty = new BooleanProperty(true);
   public readonly swapProperty = new BooleanProperty(false);
   public readonly focalStepProperty = new DerivedProperty(
-    [this.pitchProperty, this.wavelengthProperty, this.focalLengthProperty],
-    (pitch, wavelength, focalLength) =>
-      focalPlaneCoordinate(spatialFrequencyStep(this.size, pitch), wavelength, focalLength),
+    [this.sizeProperty, this.pitchProperty, this.wavelengthProperty, this.focalLengthProperty],
+    (size, pitch, wavelength, focalLength) =>
+      focalPlaneCoordinate(spatialFrequencyStep(size, pitch), wavelength, focalLength),
   );
 
-  public readonly inputsChangedEmitter = new Emitter();
-  public readonly object = new ComplexField(this.size);
-  public readonly spectrum = new ComplexField(this.size);
-  public readonly objectA = new ComplexField(this.size);
-  public readonly objectB = new ComplexField(this.size);
-  public readonly reconstructionA = new ComplexField(this.size);
-  public readonly reconstructionB = new ComplexField(this.size);
-  private readonly spectrumA = new ComplexField(this.size);
-  private readonly spectrumB = new ComplexField(this.size);
-  private readonly hybrid = new ComplexField(this.size);
-  private readonly openMask = rasterizeMask({ kind: "open" }, this.size);
-  private readonly engine = createFourierEngine(this.size);
+  public get object(): ComplexField {
+    return this.fields.get("object", this.size);
+  }
+  public get spectrum(): ComplexField {
+    return this.fields.get("spectrum", this.size);
+  }
+  public get objectA(): ComplexField {
+    return this.fields.get("objectA", this.size);
+  }
+  public get objectB(): ComplexField {
+    return this.fields.get("objectB", this.size);
+  }
+  public get reconstructionA(): ComplexField {
+    return this.fields.get("reconstructionA", this.size);
+  }
+  public get reconstructionB(): ComplexField {
+    return this.fields.get("reconstructionB", this.size);
+  }
+  private get spectrumA(): ComplexField {
+    return this.fields.get("spectrumA", this.size);
+  }
+  private get spectrumB(): ComplexField {
+    return this.fields.get("spectrumB", this.size);
+  }
   private readonly fieldInputs = [
     this.apertureProperty,
     this.objectAProperty,
@@ -127,11 +143,26 @@ export class FourierTransformModel implements TModel {
     this.tintProperty,
   ];
 
-  public recompute(): void {
+  private readonly fields = new GridFields(
+    "object",
+    "spectrum",
+    "objectA",
+    "objectB",
+    "reconstructionA",
+    "reconstructionB",
+    "spectrumA",
+    "spectrumB",
+  );
+
+  public constructor(preferences?: FourierOpticsPreferencesModel) {
+    super(preferences);
+  }
+
+  public recompute(ops: FourierOperations = this.cpu): void {
     if (this.swapProperty.value) {
       rasterizeAperture(apertureSpec(this.objectAProperty.value, PHASE_COMPARISON_DIMENSIONS), this.objectA);
       rasterizeAperture(apertureSpec(this.objectBProperty.value, PHASE_COMPARISON_DIMENSIONS), this.objectB);
-      this.reconstructWithSwappedPhase(this.objectA, this.objectB, this.reconstructionA, this.reconstructionB);
+      this.reconstructWithSwappedPhase(this.objectA, this.objectB, this.reconstructionA, this.reconstructionB, ops);
     } else {
       const d = this.dimensions;
       rasterizeAperture(
@@ -146,45 +177,38 @@ export class FourierTransformModel implements TModel {
         }),
         this.object,
       );
-      this.engine.forward(this.object, this.spectrum);
+      ops.forward(this.object, this.spectrum);
     }
   }
 
   /** Each output keeps its input's Fourier magnitude and borrows the other input's phase. */
-  public reconstructWithSwappedPhase(a: ComplexField, b: ComplexField, outA: ComplexField, outB: ComplexField): void {
-    this.engine.forward(a, this.spectrumA);
-    this.engine.forward(b, this.spectrumB);
-    this.reconstruct(this.spectrumA, this.spectrumB, outA);
-    this.reconstruct(this.spectrumB, this.spectrumA, outB);
-  }
-
-  private reconstruct(amplitude: ComplexField, phase: ComplexField, output: ComplexField): void {
-    const { data } = this.hybrid;
-    for (let i = 0; i < data.length; i += 2) {
-      const magnitude = Math.hypot(amplitude.data[i] ?? 0, amplitude.data[i + 1] ?? 0);
-      const phaseReal = phase.data[i] ?? 0;
-      const phaseImaginary = phase.data[i + 1] ?? 0;
-      const phaseMagnitude = Math.hypot(phaseReal, phaseImaginary);
-      // A phase donor with zero magnitude contributes the convention of phase zero.
-      data[i] = phaseMagnitude > 0 ? magnitude * (phaseReal / phaseMagnitude) : magnitude;
-      data[i + 1] = phaseMagnitude > 0 ? magnitude * (phaseImaginary / phaseMagnitude) : 0;
-    }
-    this.engine.filterAndInverse(this.hybrid, this.openMask, output);
+  public reconstructWithSwappedPhase(
+    a: ComplexField,
+    b: ComplexField,
+    outA: ComplexField,
+    outB: ComplexField,
+    ops: FourierOperations = this.cpu,
+  ): void {
+    ops.forward(a, this.spectrumA);
+    ops.forward(b, this.spectrumB);
+    ops.swapPhase(this.spectrumA, this.spectrumB, outA);
+    ops.swapPhase(this.spectrumB, this.spectrumA, outB);
   }
 
   public reset(): void {
     for (const property of this.resettable) {
       property.reset();
     }
+    this.zoomProperty.reset();
   }
 
-  public dispose(): void {
+  public override dispose(): void {
     this.inputLink.dispose();
     this.focalStepProperty.dispose();
     for (const property of this.resettable) {
       property.dispose();
     }
-    this.inputsChangedEmitter.dispose();
-    this.engine.dispose();
+    this.zoomProperty.dispose();
+    super.dispose();
   }
 }
