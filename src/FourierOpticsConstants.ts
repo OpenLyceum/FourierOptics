@@ -115,3 +115,33 @@ export const OPTICS_LAYOUT = {
 
 /** Number of entries per unit of linear light in the sRGB lookup table. */
 export const SPECTRAL_GAMMA_TABLE_SIZE = 1024;
+
+/** Objects and Fourier-mask parameters for the imaging screens. */
+export const FILTER_PARAMETERS = {
+  letter: { width: 132, height: 166, thickness: 24 },
+  gratingPeriod: 32,
+  phaseRadius: 62,
+  weakPhase: 0.2,
+  radius: { default: 18, min: 1, max: 62 },
+  innerRadius: { default: 7, min: 0, max: 61 },
+  slitWidth: { default: 7, min: 1, max: 56 },
+  angle: { default: 0, min: -180, max: 180 },
+  brushRadius: { default: 4, min: 1, max: 20 },
+  edgeRadius: 8,
+} as const;
+
+/** The bar groups are sampled sinusoids with these periods in object samples. */
+export const RESOLUTION_PERIODS = [32, 16, 8] as const;
+export const DEFOCUS_MM = { default: 0, min: -15, max: 15 } as const;
+
+export const IMAGING_LAYOUT = {
+  fieldSize: 226,
+  filterBins: 144,
+  irisBins: 192,
+  schematicWidth: 774,
+  schematicHeight: 88,
+  schematicMargin: 65,
+  irisTravel: 22,
+  angleHandleRadius: 49,
+  maskShadeAlpha: 97,
+} as const;

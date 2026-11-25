@@ -30,19 +30,30 @@
     },
     "spatialFiltering": {
       "screenSummary": {
-        "playArea": "El área de juego muestra el contenido principal de la simulación.",
-        "controlArea": "El área de control tiene un botón Restablecer todo que devuelve la simulación a su estado inicial.",
-        "interactionHint": "Explora la simulación interactuando con sus controles."
+        "playArea": "De izquierda a derecha están el objeto, el plano de Fourier con una máscara y la reconstrucción derecha.",
+        "controlArea": "Elige un objeto, un filtro o un preajuste. Mueve los tiradores de la máscara o pinta y borra celdas del plano de Fourier.",
+        "interactionHint": "Prueba el preajuste Abbe–Porter para eliminar las líneas horizontales de la malla."
       },
-      "currentDetails": "La simulación está en su estado inicial."
+      "currentDetails": "Objeto {{object}}. Filtro {{filter}}. Potencia transmitida: {{power}} por ciento. {{effect}}",
+      "radius": "Tirador del radio exterior de la máscara",
+      "innerRadius": "Tirador del radio interior de la máscara",
+      "slitWidth": "Tirador de la anchura de la rendija",
+      "slitAngle": "Tirador del ángulo de la rendija",
+      "dragHelp": "Usa las flechas para mover. Mantén Mayús para mover con mayor precisión.",
+      "moveHeading": "Mover los tiradores o el cursor del pincel",
+      "brush": "Cursor del pincel de la máscara de Fourier",
+      "brushHelp": "Usa las flechas para mover. Pulsa Espacio o Intro para pintar o borrar en la posición del cursor.",
+      "stamp": "Pintar o borrar en la posición del cursor"
     },
     "fourFOpticalSystem": {
       "screenSummary": {
-        "playArea": "El área de juego muestra el contenido principal de la simulación.",
-        "controlArea": "El área de control tiene un botón Restablecer todo que devuelve la simulación a su estado inicial.",
-        "interactionHint": "Explora la simulación interactuando con sus controles."
+        "playArea": "El esquema muestra dos lentes, el iris en el plano de Fourier y la cámara. Debajo aparecen el objeto, el espectro y la imagen invertida.",
+        "controlArea": "Elige un objeto y la iluminación. Ajusta las distancias focales, la longitud de onda, el diámetro del iris y el desenfoque de la cámara.",
+        "interactionHint": "Cierra el iris para ver qué barras desaparecen del patrón de resolución."
       },
-      "currentDetails": "La simulación está en su estado inicial."
+      "currentDetails": "Objeto {{object}}. Iluminación {{light}}. Aumento {{magnification}}. Diámetro del iris: {{diameter}} milímetros. Desenfoque: {{defocus}} milímetros. Corte: {{cutoff}} ciclos por micrómetro.",
+      "iris": "Tirador de la apertura del iris",
+      "irisHelp": "Mueve hacia arriba para abrir el iris o hacia abajo para cerrarlo. Mantén Mayús para mover con mayor precisión."
     }
   },
   "preferences": {
@@ -117,5 +128,78 @@
     "innerRatio": "Radio interior (% del exterior)",
     "period": "Período (muestras)",
     "thickness": "Grosor del trazo (muestras)"
+  },
+  "imagingObjects": {
+    "letterF": "Letra F",
+    "grating": "Red",
+    "mesh": "Malla (redes cruzadas)",
+    "letterMesh": "Letra F detrás de una malla",
+    "phaseDisk": "Objeto de fase débil",
+    "sinusoids": "Suma de sinusoides",
+    "resolutionTarget": "Patrón de resolución"
+  },
+  "filters": {
+    "open": "Abierto",
+    "lowPass": "Paso bajo",
+    "highPass": "Paso alto",
+    "bandPass": "Paso de banda",
+    "verticalSlit": "Rendija vertical",
+    "horizontalSlit": "Rendija horizontal",
+    "dcBlock": "Bloqueo del orden cero",
+    "phaseDot": "Punto de fase (+π/2)",
+    "painted": "Máscara pintada"
+  },
+  "filterPresets": {
+    "custom": "Personalizado",
+    "abbePorter": "Abbe–Porter: eliminar las líneas horizontales",
+    "darkField": "Campo oscuro",
+    "phaseContrast": "Contraste de fase",
+    "edgeEnhancement": "Realce de bordes"
+  },
+  "filterCaptions": {
+    "open": "Pasan todas las frecuencias. La imagen reproduce la intensidad del objeto.",
+    "lowPass": "Al eliminar las frecuencias altas, se difuminan los bordes y los detalles finos.",
+    "highPass": "Al eliminar las frecuencias bajas, se realzan los bordes.",
+    "bandPass": "Solo pasa una banda intermedia de frecuencias espaciales.",
+    "verticalSlit": "Una rendija vertical deja pasar los órdenes que forman líneas horizontales.",
+    "horizontalSlit": "Una rendija horizontal deja pasar los órdenes que forman líneas verticales.",
+    "dcBlock": "Al bloquear el orden cero, se elimina el campo medio y se obtiene una imagen de campo oscuro.",
+    "phaseDot": "El desfase del orden cero convierte las variaciones de fase en contraste de intensidad.",
+    "painted": "Las celdas pintadas se bloquean. Al borrarlas, vuelven a transmitir."
+  },
+  "filtering": {
+    "fourierPlane": "Plano de Fourier",
+    "reconstructed": "Imagen reconstruida",
+    "preset": "Preajuste",
+    "filter": "Filtro",
+    "phaseObject": "Fase del objeto (tono)",
+    "log": "Espectro logarítmico",
+    "erase": "Borrar (dejar pasar la luz)",
+    "brushRadius": "Radio del pincel (celdas)",
+    "power": "Potencia transmitida · {{power}} %"
+  },
+  "fourF": {
+    "objectPlane": "Plano del objeto",
+    "lens1": "Lente L₁",
+    "lens2": "Lente L₂",
+    "camera": "Cámara",
+    "f1Symbol": "f₁",
+    "f2Symbol": "f₂",
+    "objectIntensity": "Intensidad del objeto",
+    "irisCutoff": "Círculo del iris · corte coherente",
+    "cameraImage": "Imagen de la cámara",
+    "fixedView": "Invertida · campo de visión fijo",
+    "illumination": "Iluminación",
+    "coherent": "Coherente",
+    "incoherent": "Incoherente",
+    "f1": "Distancia focal f₁ (mm)",
+    "f2": "Distancia focal f₂ (mm)",
+    "iris": "Diámetro del iris D (mm)",
+    "defocus": "Desenfoque Δz (mm)",
+    "magnification": "M = {{value}}",
+    "cutoff": "ν꜀ = {{value}} ciclos/µm",
+    "incoherentCutoff": "2ν꜀ = {{value}} ciclos/µm",
+    "period": "Período límite óptico · {{value}} µm",
+    "incoherentNote": "Con iluminación incoherente y en foco, los bordes no presentan oscilaciones y las barras finas pierden contraste cerca del corte."
   }
 }

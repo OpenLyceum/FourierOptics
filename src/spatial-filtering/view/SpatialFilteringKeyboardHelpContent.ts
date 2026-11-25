@@ -1,30 +1,23 @@
-/**
- * SpatialFilteringKeyboardHelpContent.ts
- *
- * Content for the keyboard-help dialog (the "?" button in the navigation bar).
- * The template's only interactions are buttons and Reset All, so a single
- * basic-actions section covers the available keyboard controls. When the sim
- * grows, fill the right column (pattern stubbed below).
- */
-
 import {
   BasicActionsKeyboardHelpSection,
-  // SliderControlsKeyboardHelpSection,
-  // TimeControlsKeyboardHelpSection,
+  KeyboardHelpSection,
+  KeyboardHelpSectionRow,
+  MoveDraggableItemsKeyboardHelpSection,
+  SliderControlsKeyboardHelpSection,
   TwoColumnKeyboardHelpContent,
 } from "scenerystack/scenery-phet";
+import { BRUSH_STAMP_HOTKEY } from "../../common/view/MaskEditorNode.js";
+import { StringManager } from "../../i18n/StringManager.js";
 
 export class SpatialFilteringKeyboardHelpContent extends TwoColumnKeyboardHelpContent {
   public constructor() {
-    const leftColumn = [new BasicActionsKeyboardHelpSection()];
-
-    // Right column — uncomment when the sim adds sliders and/or TimeControlNode:
-    // const rightColumn = [
-    //   new SliderControlsKeyboardHelpSection(),
-    //   // new TimeControlsKeyboardHelpSection(),
-    // ];
-    const rightColumn: never[] = [];
-
-    super(leftColumn, rightColumn);
+    const a11y = StringManager.getInstance().getSpatialFilteringA11yStrings();
+    super(
+      [
+        new MoveDraggableItemsKeyboardHelpSection({ headingStringProperty: a11y.moveHeadingStringProperty }),
+        new KeyboardHelpSection(a11y.brushStringProperty, [KeyboardHelpSectionRow.fromHotkeyData(BRUSH_STAMP_HOTKEY)]),
+      ],
+      [new SliderControlsKeyboardHelpSection(), new BasicActionsKeyboardHelpSection()],
+    );
   }
 }

@@ -30,19 +30,30 @@
     },
     "spatialFiltering": {
       "screenSummary": {
-        "playArea": "La zone de jeu affiche le contenu principal de la simulation.",
-        "controlArea": "La zone de contrôle comporte un bouton Tout réinitialiser qui ramène la simulation à son état initial.",
-        "interactionHint": "Explorez la simulation en interagissant avec ses commandes."
+        "playArea": "De gauche à droite se trouvent l’objet, le plan de Fourier avec un masque et l’image reconstruite à l’endroit.",
+        "controlArea": "Choisissez un objet, un filtre ou un préréglage. Déplacez les poignées du masque ou peignez et effacez des cases du plan de Fourier.",
+        "interactionHint": "Essayez le préréglage Abbe–Porter pour supprimer les lignes horizontales de la grille."
       },
-      "currentDetails": "La simulation est dans son état initial."
+      "currentDetails": "Objet {{object}}. Filtre {{filter}}. Puissance transmise : {{power}} pour cent. {{effect}}",
+      "radius": "Poignée du rayon extérieur du masque",
+      "innerRadius": "Poignée du rayon intérieur du masque",
+      "slitWidth": "Poignée de la largeur de la fente",
+      "slitAngle": "Poignée de l’angle de la fente",
+      "dragHelp": "Déplacez avec les flèches. Maintenez Maj pour un déplacement plus précis.",
+      "moveHeading": "Déplacer les poignées ou le curseur du pinceau",
+      "brush": "Curseur du pinceau du masque de Fourier",
+      "brushHelp": "Déplacez avec les flèches. Appuyez sur Espace ou Entrée pour peindre ou effacer à la position du curseur.",
+      "stamp": "Peindre ou effacer à la position du curseur"
     },
     "fourFOpticalSystem": {
       "screenSummary": {
-        "playArea": "La zone de jeu affiche le contenu principal de la simulation.",
-        "controlArea": "La zone de contrôle comporte un bouton Tout réinitialiser qui ramène la simulation à son état initial.",
-        "interactionHint": "Explorez la simulation en interagissant avec ses commandes."
+        "playArea": "Le schéma montre deux lentilles, l’iris dans le plan de Fourier et la caméra. En dessous figurent l’objet, le spectre et l’image inversée.",
+        "controlArea": "Choisissez un objet et un éclairage. Réglez les distances focales, la longueur d’onde, le diamètre de l’iris et la défocalisation de la caméra.",
+        "interactionHint": "Fermez l’iris pour voir quelles barres de la mire de résolution disparaissent."
       },
-      "currentDetails": "La simulation est dans son état initial."
+      "currentDetails": "Objet {{object}}. Éclairage {{light}}. Grandissement {{magnification}}. Diamètre de l’iris : {{diameter}} millimètres. Défocalisation : {{defocus}} millimètres. Coupure : {{cutoff}} cycles par micromètre.",
+      "iris": "Poignée de l’ouverture de l’iris",
+      "irisHelp": "Déplacez vers le haut pour ouvrir l’iris ou vers le bas pour le fermer. Maintenez Maj pour un déplacement plus précis."
     }
   },
   "preferences": {
@@ -117,5 +128,78 @@
     "innerRatio": "Rayon intérieur (% de l’extérieur)",
     "period": "Période (échantillons)",
     "thickness": "Épaisseur du trait (échantillons)"
+  },
+  "imagingObjects": {
+    "letterF": "Lettre F",
+    "grating": "Réseau",
+    "mesh": "Grille (réseaux croisés)",
+    "letterMesh": "Lettre F derrière une grille",
+    "phaseDisk": "Objet de phase faible",
+    "sinusoids": "Somme de sinusoïdes",
+    "resolutionTarget": "Mire de résolution"
+  },
+  "filters": {
+    "open": "Ouvert",
+    "lowPass": "Passe-bas",
+    "highPass": "Passe-haut",
+    "bandPass": "Passe-bande",
+    "verticalSlit": "Fente verticale",
+    "horizontalSlit": "Fente horizontale",
+    "dcBlock": "Blocage de l’ordre zéro",
+    "phaseDot": "Pastille de phase (+π/2)",
+    "painted": "Masque peint"
+  },
+  "filterPresets": {
+    "custom": "Personnalisé",
+    "abbePorter": "Abbe–Porter : retirer les lignes horizontales",
+    "darkField": "Fond noir",
+    "phaseContrast": "Contraste de phase",
+    "edgeEnhancement": "Renforcement des contours"
+  },
+  "filterCaptions": {
+    "open": "Toutes les fréquences passent. L’image reproduit l’intensité de l’objet.",
+    "lowPass": "La suppression des hautes fréquences estompe les contours et les détails fins.",
+    "highPass": "La suppression des basses fréquences fait ressortir les contours.",
+    "bandPass": "Seule une bande intermédiaire de fréquences spatiales passe.",
+    "verticalSlit": "Une fente verticale transmet les ordres qui forment les lignes horizontales.",
+    "horizontalSlit": "Une fente horizontale transmet les ordres qui forment les lignes verticales.",
+    "dcBlock": "Le blocage de l’ordre zéro supprime le champ moyen et produit une image sur fond noir.",
+    "phaseDot": "Le déphasage de l’ordre zéro convertit les variations de phase en contraste d’intensité.",
+    "painted": "Les cases peintes sont bloquées. Les effacer rétablit leur transmission."
+  },
+  "filtering": {
+    "fourierPlane": "Plan de Fourier",
+    "reconstructed": "Image reconstruite",
+    "preset": "Préréglage",
+    "filter": "Filtre",
+    "phaseObject": "Phase de l’objet (teinte)",
+    "log": "Spectre logarithmique",
+    "erase": "Effacer (laisser passer la lumière)",
+    "brushRadius": "Rayon du pinceau (cases)",
+    "power": "Puissance transmise · {{power}} %"
+  },
+  "fourF": {
+    "objectPlane": "Plan objet",
+    "lens1": "Lentille L₁",
+    "lens2": "Lentille L₂",
+    "camera": "Caméra",
+    "f1Symbol": "f₁",
+    "f2Symbol": "f₂",
+    "objectIntensity": "Intensité de l’objet",
+    "irisCutoff": "Cercle de l’iris · coupure cohérente",
+    "cameraImage": "Image de la caméra",
+    "fixedView": "Inversée · champ de vision fixe",
+    "illumination": "Éclairage",
+    "coherent": "Cohérent",
+    "incoherent": "Incohérent",
+    "f1": "Distance focale f₁ (mm)",
+    "f2": "Distance focale f₂ (mm)",
+    "iris": "Diamètre de l’iris D (mm)",
+    "defocus": "Défocalisation Δz (mm)",
+    "magnification": "M = {{value}}",
+    "cutoff": "ν꜀ = {{value}} cycles/µm",
+    "incoherentCutoff": "2ν꜀ = {{value}} cycles/µm",
+    "period": "Période limite optique · {{value}} µm",
+    "incoherentNote": "À la mise au point, les bords sans éclairage cohérent n’ont pas d’oscillations et les barres fines perdent du contraste près de la coupure."
   }
 }

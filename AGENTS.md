@@ -32,5 +32,6 @@ Fourier Optics (`fourier-optics`) is a SceneryStack simulation scaffolded from S
 ## Compliance carve-outs
 
 - **Hardcoded colors (computed colours of light).** `spectralColor.ts` and `FieldImageNode.ts` compute wavelength tints, phase hues, and sample brightness. UI colours use profile properties.
+- `memory-leak:MaskShade`: The private raster layer is exercised and disposed through `MaskEditorNode.disposeSubtree()` in `tests/memory-leak.test.ts`.
 
 Vitest uses the template's `happy-dom` environment.

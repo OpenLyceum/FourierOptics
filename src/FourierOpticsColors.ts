@@ -118,6 +118,14 @@ const FourierOpticsColors = {
     default: "#f4a5ed",
     projector: "#f4a5ed",
   }),
+  maskShadeColorProperty: new ProfileColorProperty(FourierOpticsNamespace, "maskShade", {
+    default: "#7485ad",
+    projector: "#53658a",
+  }),
+  maskOutlineColorProperty: new ProfileColorProperty(FourierOpticsNamespace, "maskOutline", {
+    default: "#62ddfa",
+    projector: "#49cadc",
+  }),
 };
 
 export default FourierOpticsColors;

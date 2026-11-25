@@ -110,6 +110,30 @@ export class StringManager {
     return stringProperties.common;
   }
 
+  public getImagingObjectStrings() {
+    return stringProperties.imagingObjects;
+  }
+
+  public getFilterStrings() {
+    return stringProperties.filters;
+  }
+
+  public getFilterPresetStrings() {
+    return stringProperties.filterPresets;
+  }
+
+  public getFilteringStrings() {
+    return stringProperties.filtering;
+  }
+
+  public getFourFStrings() {
+    return stringProperties.fourF;
+  }
+
+  public getFilterCaptions() {
+    return stringProperties.filterCaptions;
+  }
+
   /** Accessibility strings for the Spatial Frequencies screen. */
   public getSpatialFrequenciesA11yStrings() {
     return stringProperties.a11y.spatialFrequencies;

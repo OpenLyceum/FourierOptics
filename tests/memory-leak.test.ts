@@ -18,12 +18,15 @@ import { rasterizeMask } from "../src/common/model/masks.js";
 import { FieldImageNode } from "../src/common/view/FieldImageNode.js";
 import { FrameRecomputeScheduler } from "../src/common/view/FrameRecomputeScheduler.js";
 import { LensSchematicNode } from "../src/common/view/LensSchematicNode.js";
+import { MaskEditorNode } from "../src/common/view/MaskEditorNode.js";
 import Colors from "../src/FourierOpticsColors.js";
 import { FourFOpticalSystemModel } from "../src/four-f-optical-system/model/FourFOpticalSystemModel.js";
+import { FourFOpticalSystemScreenSummaryContent } from "../src/four-f-optical-system/view/FourFOpticalSystemScreenSummaryContent.js";
 import { FourierTransformModel } from "../src/fourier-transform/model/FourierTransformModel.js";
 import { FourierTransformScreenSummaryContent } from "../src/fourier-transform/view/FourierTransformScreenSummaryContent.js";
 import { StringManager } from "../src/i18n/StringManager.js";
 import { SpatialFilteringModel } from "../src/spatial-filtering/model/SpatialFilteringModel.js";
+import { SpatialFilteringScreenSummaryContent } from "../src/spatial-filtering/view/SpatialFilteringScreenSummaryContent.js";
 import { SpatialFrequenciesModel } from "../src/spatial-frequencies/model/SpatialFrequenciesModel.js";
 import { FrequencyHandleNode } from "../src/spatial-frequencies/view/FrequencyHandleNode.js";
 import {
@@ -125,4 +128,67 @@ it("releases localized labels and model listeners for schematics and live summar
       new FourierTransformScreenSummaryContent(transformModel).disposeSubtree();
     },
   );
+});
+
+it("releases phase 3 editor, diagram and summary subscriptions with live models", async () => {
+  const filtering = new SpatialFilteringModel();
+  const system = new FourFOpticalSystemModel();
+  const manager = StringManager.getInstance();
+  const filters = manager.getSpatialFilteringA11yStrings();
+  const optics = manager.getFourFOpticalSystemA11yStrings();
+  const labels = manager.getFourFStrings();
+
+  try {
+    await expectNoListenerGrowth(
+      [
+        filtering.objectProperty,
+        filtering.filterProperty,
+        filtering.brushRadiusProperty,
+        filtering.transmittedProperty,
+        system.irisProperty,
+        system.f1Property,
+        system.f2Property,
+        system.defocusProperty,
+        system.illuminationProperty,
+        system.incoherentCutoffProperty,
+        ...Object.values(manager.getImagingObjectStrings()),
+        ...Object.values(manager.getFilterStrings()),
+        ...Object.values(labels),
+        filters.brushStringProperty,
+        optics.irisStringProperty,
+        Colors.maskShadeColorProperty,
+        Colors.thirdGratingColorProperty,
+      ],
+      () => {
+        filtering.filterProperty.value = "painted";
+        const editor = new MaskEditorNode(100, 64, filtering.size, {
+          radiusProperty: filtering.radiusProperty,
+          innerRadiusProperty: filtering.innerRadiusProperty,
+          slitWidthProperty: filtering.slitWidthProperty,
+          slitAngleProperty: filtering.slitAngleProperty,
+          brushRadiusProperty: filtering.brushRadiusProperty,
+          getMask: () => filtering.getMask(),
+          paint: (point, previous) => filtering.paint(point.x, point.y, previous.x, previous.y),
+        });
+        editor.update(filtering.getMask(), filtering.recompute());
+        editor.disposeSubtree();
+        const diagram = new LensSchematicNode({
+          f1: system.f1Property,
+          f2: system.f2Property,
+          iris: system.irisProperty,
+          defocus: system.defocusProperty,
+          stations: [labels.objectPlaneStringProperty, labels.lens1StringProperty, labels.cameraStringProperty],
+          distances: [labels.f1SymbolStringProperty, labels.f2SymbolStringProperty],
+          irisName: optics.irisStringProperty,
+          irisHelp: optics.irisHelpStringProperty,
+        });
+        diagram.disposeSubtree();
+        new SpatialFilteringScreenSummaryContent(filtering).disposeSubtree();
+        new FourFOpticalSystemScreenSummaryContent(system).disposeSubtree();
+      },
+    );
+  } finally {
+    filtering.dispose();
+    system.dispose();
+  }
 });

@@ -1,41 +1,51 @@
-/**
- * FourFOpticalSystemScreenSummaryContent.ts
- *
- * The accessible screen summary read by screen readers (SceneryStack's
- * Interactive Description). It appears at the top of the parallel DOM and gives
- * a non-visual user a way to orient themselves and to re-read the simulation's
- * current state at any time.
- *
- * A summary has four regions (all optional, but provide at least the first
- * three in every sim for consistency across OpenLyceum):
- *   - playAreaContent       — what the play area contains
- *   - controlAreaContent    — what the controls do
- *   - currentDetailsContent — a LIVE paragraph describing current state
- *   - interactionHintContent — a short hint on how to get started
- *
- * ── Making "current details" live ─────────────────────────────────────────────
- * The template has no model state, so currentDetails is a static string. In a
- * real sim, build a DerivedProperty over the relevant model Properties and pass
- * it as `currentDetailsContent` so the paragraph updates as the sim runs.
- * See LunarLander/src/.../LunarLanderScreenSummaryContent.ts for the pattern.
- * If that DerivedProperty (or any Multilink) is owned by a short-lived object,
- * dispose it on teardown — see the commented dispose() stub in FourFOpticalSystemScreenView.
- */
+import { DerivedProperty } from "scenerystack/axon";
+import { toFixed } from "scenerystack/dot";
+import { StringUtils } from "scenerystack/phetcommon";
 import { ScreenSummaryContent } from "scenerystack/sim";
 import { StringManager } from "../../i18n/StringManager.js";
 import type { FourFOpticalSystemModel } from "../model/FourFOpticalSystemModel.js";
 
 export class FourFOpticalSystemScreenSummaryContent extends ScreenSummaryContent {
-  // `model` is unused in the template but kept in the signature so real sims can
-  // derive a live currentDetailsContent from it without changing call sites.
-  public constructor(_model: FourFOpticalSystemModel) {
-    const a11y = StringManager.getInstance().getFourFOpticalSystemA11yStrings();
-
+  public constructor(model: FourFOpticalSystemModel) {
+    const manager = StringManager.getInstance();
+    const a11y = manager.getFourFOpticalSystemA11yStrings();
+    const objects = manager.getImagingObjectStrings();
+    const strings = manager.getFourFStrings();
+    const details = DerivedProperty.deriveAny(
+      [
+        model.objectProperty,
+        model.illuminationProperty,
+        model.magnificationProperty,
+        model.irisProperty,
+        model.defocusProperty,
+        model.coherentCutoffProperty,
+        model.incoherentCutoffProperty,
+        ...Object.values(objects),
+        strings.coherentStringProperty,
+        strings.incoherentStringProperty,
+        a11y.currentDetailsStringProperty,
+      ],
+      () => {
+        const illumination = model.illuminationProperty.value;
+        return StringUtils.fillIn(a11y.currentDetailsStringProperty.value, {
+          object: objects[`${model.objectProperty.value}StringProperty`].value,
+          light: strings[`${illumination}StringProperty`].value,
+          magnification: toFixed(model.magnificationProperty.value, 2),
+          diameter: toFixed(model.irisProperty.value, 2),
+          defocus: toFixed(model.defocusProperty.value, 1),
+          cutoff: toFixed(
+            (illumination === "coherent" ? model.coherentCutoffProperty : model.incoherentCutoffProperty).value,
+            4,
+          ),
+        });
+      },
+    );
     super({
       playAreaContent: a11y.screenSummary.playAreaStringProperty,
       controlAreaContent: a11y.screenSummary.controlAreaStringProperty,
-      currentDetailsContent: a11y.currentDetailsStringProperty,
+      currentDetailsContent: details,
       interactionHintContent: a11y.screenSummary.interactionHintStringProperty,
     });
+    this.disposeEmitter.addListener(() => details.dispose());
   }
 }

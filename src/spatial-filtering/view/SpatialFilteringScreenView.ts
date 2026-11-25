@@ -1,151 +1,187 @@
-/**
- * SpatialFilteringScreenView.ts
- *
- * The top-level view for the simulation screen.
- *
- * All visual nodes are added here. Follow these conventions:
- *   - Use this.layoutBounds for positioning (never magic pixel values)
- *   - Keep a ResetAllButton that calls model.reset() and this.reset()
- *   - Override step(dt) for frame-by-frame animation
- *
- * ── Adding content ────────────────────────────────────────────────────────────
- * 1. Create Node subclasses in separate files (e.g. FourierOpticsControlPanel.ts)
- * 2. Instantiate them here and call this.addChild(...)
- * 3. Link them to model properties:
- *      model.isRunningProperty.link( isRunning => { ... } );
- *
- * ── Layout bounds ─────────────────────────────────────────────────────────────
- * SceneryStack uses a virtual 1024×618 coordinate space by default.
- * this.layoutBounds gives you the full rectangle; use it for alignment:
- *   center, minX, maxX, minY, maxY, width, height
- */
-
-import { type EmptySelfOptions, optionize } from "scenerystack/phet-core";
-import { Node, Rectangle } from "scenerystack/scenery";
-import { ResetAllButton } from "scenerystack/scenery-phet";
+import { DerivedProperty, Multilink, PatternStringProperty } from "scenerystack/axon";
+import { toFixed } from "scenerystack/dot";
+import { HBox, Node, RichText, VBox } from "scenerystack/scenery";
+import { PhetFont, ResetAllButton } from "scenerystack/scenery-phet";
 import { ScreenView, type ScreenViewOptions } from "scenerystack/sim";
 import { FLAT_RESET_ALL_BUTTON_OPTIONS } from "../../common/FourierOpticsButtonOptions.js";
-import FourierOpticsColors from "../../FourierOpticsColors.js";
-import { SCREEN_VIEW_MARGIN } from "../../FourierOpticsConstants.js";
-import type { SpatialFilteringModel } from "../model/SpatialFilteringModel.js";
+import { FourierOpticsPanel } from "../../common/FourierOpticsPanel.js";
+import { FILTER_OBJECTS } from "../../common/model/imagingObjects.js";
+import { checkbox, combo, heading, label, numberControl } from "../../common/view/controls.js";
+import { FieldImageNode } from "../../common/view/FieldImageNode.js";
+import { FrameRecomputeScheduler } from "../../common/view/FrameRecomputeScheduler.js";
+import { MaskEditorNode } from "../../common/view/MaskEditorNode.js";
+import Colors from "../../FourierOpticsColors.js";
+import { IMAGING_LAYOUT as I, OPTICS_LAYOUT as L, SCREEN_VIEW_MARGIN } from "../../FourierOpticsConstants.js";
+import { StringManager } from "../../i18n/StringManager.js";
+import { FILTER_KINDS, FILTER_PRESETS, type SpatialFilteringModel } from "../model/SpatialFilteringModel.js";
 import { SpatialFilteringScreenSummaryContent } from "./SpatialFilteringScreenSummaryContent.js";
 
-export type SpatialFilteringScreenViewOptions = ScreenViewOptions;
-
 export class SpatialFilteringScreenView extends ScreenView {
-  public constructor(model: SpatialFilteringModel, providedOptions?: SpatialFilteringScreenViewOptions) {
-    // ── Accessibility: screen summary ───────────────────────────────────────────
-    // The screen summary is the first thing a screen-reader user encounters. It
-    // is registered here, in the ScreenView's super() options, so every sim wires
-    // it the same way. See SpatialFilteringScreenSummaryContent for the four content regions.
-    const options = optionize<SpatialFilteringScreenViewOptions, EmptySelfOptions, ScreenViewOptions>()(
-      {
-        screenSummaryContent: new SpatialFilteringScreenSummaryContent(model),
-      },
-      providedOptions,
+  private readonly scheduler: FrameRecomputeScheduler;
+
+  public constructor(model: SpatialFilteringModel, options: ScreenViewOptions) {
+    super({ screenSummaryContent: new SpatialFilteringScreenSummaryContent(model), ...options });
+    const manager = StringManager.getInstance();
+    const strings = manager.getFilteringStrings();
+    const common = manager.getCommonStrings();
+    const objectNames = manager.getImagingObjectStrings();
+    const filterNames = manager.getFilterStrings();
+    const presetNames = manager.getFilterPresetStrings();
+    const captions = manager.getFilterCaptions();
+    const transform = manager.getTransformStrings();
+
+    const object = new FieldImageNode(model.object, I.fieldSize);
+    const spectrum = new FieldImageNode(model.spectrum, I.fieldSize, I.filterBins);
+    const result = new FieldImageNode(model.reconstructed, I.fieldSize);
+    const editor = new MaskEditorNode(I.fieldSize, I.filterBins, model.size, {
+      radiusProperty: model.radiusProperty,
+      innerRadiusProperty: model.innerRadiusProperty,
+      slitWidthProperty: model.slitWidthProperty,
+      slitAngleProperty: model.slitAngleProperty,
+      brushRadiusProperty: model.brushRadiusProperty,
+      getMask: () => model.getMask(),
+      paint: (point, previous) => model.paint(point.x, point.y, previous.x, previous.y),
+    });
+
+    const popup = new Node();
+    const preset = combo(
+      strings.presetStringProperty,
+      model.presetProperty,
+      FILTER_PRESETS.map((value) => ({ value, name: presetNames[`${value}StringProperty`] })),
+      popup,
     );
-    super(options);
-
-    // ── Background ────────────────────────────────────────────────────────────
-    // A full-screen rectangle that follows the active color profile.
-    // Replace or remove once you add real content.
-    const backgroundRect = new Rectangle(0, 0, this.layoutBounds.width, this.layoutBounds.height, {
-      fill: FourierOpticsColors.backgroundColorProperty,
+    const objectChoice = combo(
+      common.objectStringProperty,
+      model.objectProperty,
+      FILTER_OBJECTS.map((value) => ({ value, name: objectNames[`${value}StringProperty`] })),
+      popup,
+    );
+    const filter = combo(
+      strings.filterStringProperty,
+      model.filterProperty,
+      FILTER_KINDS.map((value) => ({ value, name: filterNames[`${value}StringProperty`] })),
+      popup,
+    );
+    const display = new VBox({
+      align: "left",
+      spacing: L.smallGap,
+      children: [
+        checkbox(strings.logStringProperty, model.logProperty),
+        checkbox(transform.phaseStringProperty, model.phaseProperty),
+      ],
     });
-    this.addChild(backgroundRect);
-
-    // ── Accessibility: per-control names ────────────────────────────────────────
-    // EVERY interactive node must carry an `accessibleName` (and an
-    // `accessibleHelpText` where useful), sourced from the StringManager `a11y`
-    // string group — never a hard-coded English literal. Sun/scenery-phet controls
-    // (NumberControl, Checkbox, ComboBox, AquaRadioButtonGroup, …) accept it as an
-    // option; a draggable plain Node needs `tagName: "div", focusable: true` too.
-    // Example (uncomment and adapt when you add a real control; add the
-    // `a11y.controls.startButton` string to every strings_*.json first):
-    //
-    //   const a11y = StringManager.getInstance().getA11yStrings();
-    //   const startButton = new RectangularPushButton({
-    //     ...FLAT_RECTANGULAR_BUTTON_OPTIONS, // flat appearance, not SceneryStack's default 3-D look
-    //     content: someIcon,
-    //     listener: () => model.start(),
-    //     accessibleName: a11y.controls.startButtonStringProperty,
-    //   });
-    //   this.addChild(startButton);
-
-    // ── Reset All button ──────────────────────────────────────────────────────
-    // Always position at bottom-right (PhET convention).
-    const resetAllButton = new ResetAllButton({
-      ...FLAT_RESET_ALL_BUTTON_OPTIONS,
-      listener: () => {
-        model.reset();
-        this.reset();
-      },
-      right: this.layoutBounds.maxX - SCREEN_VIEW_MARGIN,
-      bottom: this.layoutBounds.maxY - SCREEN_VIEW_MARGIN,
+    const brush = new VBox({
+      align: "left",
+      spacing: L.smallGap,
+      children: [
+        checkbox(strings.eraseStringProperty, model.eraseProperty),
+        numberControl(strings.brushRadiusStringProperty, model.brushRadiusProperty),
+      ],
     });
-    this.addChild(resetAllButton);
-
-    // ── Accessibility: keyboard / reading traversal order ───────────────────────
-    // Make the parallel DOM (Tab order and screen-reader reading order)
-    // deterministic and independent of child z-order. ScreenView throws if you
-    // set pdomOrder on itself, so add a lightweight wrapper Node that "borrows"
-    // the interactive nodes in the order a user should reach them — Reset All
-    // last. Non-interactive decoration (background, placeholder) is omitted.
-    this.addChild(
-      new Node({
-        pdomOrder: [
-          // TODO: add the sim's interactive nodes here, in traversal order
-          resetAllButton,
-        ],
+    const tools = new HBox({
+      spacing: L.gap * 2,
+      align: "top",
+      excludeInvisibleChildrenFromBounds: false,
+      children: [display, brush],
+    });
+    const controls = new FourierOpticsPanel(
+      new VBox({
+        align: "left",
+        spacing: L.gap,
+        children: [new HBox({ spacing: L.gap * 2, align: "top", children: [preset, objectChoice, filter] }), tools],
       }),
     );
+
+    const captionProperty = DerivedProperty.deriveAny(
+      [model.filterProperty, ...Object.values(captions)],
+      () => captions[`${model.filterProperty.value}StringProperty`].value,
+    );
+    const powerProperty = new DerivedProperty([model.transmittedProperty], (fraction) => toFixed(fraction * 100, 1));
+    const powerLabelProperty = new PatternStringProperty(strings.powerStringProperty, { power: powerProperty });
+    const objectHeadingProperty = new DerivedProperty(
+      [model.objectProperty, common.objectStringProperty, strings.phaseObjectStringProperty],
+      (kind, normal, phase) => (kind === "phaseDisk" ? phase : normal),
+    );
+    const panels = new HBox({
+      align: "top",
+      spacing: L.gap,
+      children: [
+        imagePanel(objectHeadingProperty, object),
+        imagePanel(strings.fourierPlaneStringProperty, new Node({ children: [spectrum, editor] })),
+        imagePanel(
+          strings.reconstructedStringProperty,
+          result,
+          new VBox({
+            spacing: L.smallGap,
+            children: [
+              new RichText(captionProperty, {
+                lineWrap: I.fieldSize,
+                font: new PhetFont(L.labelFontSize),
+                fill: Colors.textColorProperty,
+              }),
+              label(powerLabelProperty, { maxWidth: I.fieldSize }),
+            ],
+          }),
+        ),
+      ],
+    });
+    const body = new VBox({
+      spacing: L.gap,
+      children: [panels, controls],
+      centerX: this.layoutBounds.centerX,
+      top: this.layoutBounds.minY + SCREEN_VIEW_MARGIN,
+    });
+    const reset = new ResetAllButton({
+      ...FLAT_RESET_ALL_BUTTON_OPTIONS,
+      right: this.layoutBounds.maxX - SCREEN_VIEW_MARGIN,
+      bottom: this.layoutBounds.maxY - SCREEN_VIEW_MARGIN,
+      listener: () => {
+        this.interruptSubtreeInput();
+        model.reset();
+        editor.reset();
+      },
+    });
+    const content = new Node({ children: [body, reset, popup], pdomOrder: [controls, editor, reset] });
+    this.addChild(content);
+
+    const updateSpectrum = () =>
+      spectrum.update(model.phaseProperty.value ? "phase" : model.logProperty.value ? "log" : "intensity");
+    const displayLink = Multilink.lazyMultilinkAny([model.logProperty, model.phaseProperty], updateSpectrum);
+    const showBrush = (kind: typeof model.filterProperty.value) => {
+      brush.visible = kind === "painted";
+    };
+    model.filterProperty.link(showBrush);
+    this.scheduler = new FrameRecomputeScheduler(model.inputsChangedEmitter, () => {
+      const transmission = model.recompute();
+      object.updateScale();
+      object.update(model.objectProperty.value === "phaseDisk" ? "phase" : "intensity");
+      spectrum.updateScale();
+      updateSpectrum();
+      editor.update(model.getMask(), transmission);
+      result.updateScale();
+      result.update("intensity");
+    });
+    content.disposeEmitter.addListener(() => {
+      this.scheduler.dispose();
+      model.filterProperty.unlink(showBrush);
+      displayLink.dispose();
+      objectHeadingProperty.dispose();
+      powerLabelProperty.dispose();
+      powerProperty.dispose();
+      captionProperty.dispose();
+    });
   }
 
-  /**
-   * Resets view-side state (animations, panel visibility, etc.).
-   * Called by the Reset All button listener.
-   */
-  public reset(): void {
-    // TODO: reset any view-side state here
-  }
-
-  /**
-   * Steps the view forward by dt seconds for animation.
-   * @param _dt - elapsed time in seconds
-   */
   public override step(_dt: number): void {
-    // TODO: implement animation updates here
+    this.scheduler.step();
   }
+}
 
-  // ── Accessibility / listeners: dispose ─────────────────────────────────────
-  // ScreenView is `isDisposable: false` and lives for the whole sim, so this
-  // class rarely needs dispose(). Child Nodes (and a live currentDetails
-  // DerivedProperty you own on a short-lived object) do. When you add
-  // DerivedProperty / Multilink / Property.link against model state, keep the
-  // references and tear them down — forks copy what they see. Pattern:
-  //
-  // private readonly disposeSpatialFilteringScreenView: () => void;
-  //
-  // // in the constructor, after creating the listeners:
-  // const statusMultilink = Multilink.multilink(
-  //   [model.someProperty, model.otherProperty],
-  //   (a, b) => { /* update view from model */ },
-  // );
-  // const detailsProperty = new DerivedProperty(
-  //   [model.stateProperty],
-  //   (state) => `State: ${state}`,
-  // ); // → pass as currentDetailsContent in SpatialFilteringScreenSummaryContent
-  // const onExternal = (v: number) => { /* … */ };
-  // model.externalProperty.link(onExternal); // Property you do NOT own
-  //
-  // this.disposeSpatialFilteringScreenView = () => {
-  //   statusMultilink.dispose();                 // Multilink you created
-  //   detailsProperty.dispose();                 // DerivedProperty you created
-  //   model.externalProperty.unlink(onExternal); // undo external link
-  // };
-  //
-  // public override dispose(): void {
-  //   this.disposeSpatialFilteringScreenView();
-  //   super.dispose();
-  // }
+function imagePanel(name: Parameters<typeof heading>[0], image: Node, details?: Node): FourierOpticsPanel {
+  return new FourierOpticsPanel(
+    new VBox({
+      spacing: L.smallGap,
+      children: [heading(name, I.fieldSize), image, ...(details ? [details] : [])],
+    }),
+  );
 }

@@ -30,19 +30,30 @@
     },
     "spatialFiltering": {
       "screenSummary": {
-        "playArea": "The play area shows the main simulation content.",
-        "controlArea": "The control area has a Reset All button that returns the simulation to its starting state.",
-        "interactionHint": "Explore the simulation by interacting with its controls."
+        "playArea": "From left to right are the object, the Fourier plane with a mask, and the upright reconstruction.",
+        "controlArea": "Choose an object, filter, or preset. Move mask handles or paint and erase bins in the Fourier plane.",
+        "interactionHint": "Try the Abbe–Porter preset to remove horizontal lines from a mesh."
       },
-      "currentDetails": "The simulation is in its initial state."
+      "currentDetails": "Object {{object}}. Filter {{filter}}. Transmitted power {{power}} percent. {{effect}}",
+      "radius": "Outer mask radius handle",
+      "innerRadius": "Inner mask radius handle",
+      "slitWidth": "Slit width handle",
+      "slitAngle": "Slit angle handle",
+      "dragHelp": "Move with the arrow keys. Hold Shift for finer movement.",
+      "moveHeading": "Move mask handles or brush cursor",
+      "brush": "Fourier mask brush cursor",
+      "brushHelp": "Move with the arrow keys. Press Space or Enter to paint or erase at the cursor.",
+      "stamp": "Paint or erase at cursor"
     },
     "fourFOpticalSystem": {
       "screenSummary": {
-        "playArea": "The play area shows the main simulation content.",
-        "controlArea": "The control area has a Reset All button that returns the simulation to its starting state.",
-        "interactionHint": "Explore the simulation by interacting with its controls."
+        "playArea": "The diagram shows two lenses, the Fourier-plane iris, and the camera. Below are the object, spectrum, and inverted camera image.",
+        "controlArea": "Choose an object and illumination. Set the focal lengths, wavelength, iris diameter, and camera defocus.",
+        "interactionHint": "Close the iris to see which bars disappear from the resolution target."
       },
-      "currentDetails": "The simulation is in its initial state."
+      "currentDetails": "Object {{object}}. Illumination {{light}}. Magnification {{magnification}}. Iris diameter {{diameter}} millimeters. Defocus {{defocus}} millimeters. Cutoff {{cutoff}} cycles per micrometer.",
+      "iris": "Iris aperture handle",
+      "irisHelp": "Move up to open the iris or down to close it. Hold Shift for finer movement."
     }
   },
   "preferences": {
@@ -117,5 +128,78 @@
     "innerRatio": "Inner radius (% of outer)",
     "period": "Period (samples)",
     "thickness": "Stroke thickness (samples)"
+  },
+  "imagingObjects": {
+    "letterF": "Letter F",
+    "grating": "Grating",
+    "mesh": "Mesh (crossed gratings)",
+    "letterMesh": "Letter F behind a mesh",
+    "phaseDisk": "Weak phase object",
+    "sinusoids": "Sum of sinusoids",
+    "resolutionTarget": "Resolution target"
+  },
+  "filters": {
+    "open": "Open",
+    "lowPass": "Low pass",
+    "highPass": "High pass",
+    "bandPass": "Band pass",
+    "verticalSlit": "Vertical slit",
+    "horizontalSlit": "Horizontal slit",
+    "dcBlock": "DC block",
+    "phaseDot": "Phase dot (+π/2)",
+    "painted": "Painted mask"
+  },
+  "filterPresets": {
+    "custom": "Custom",
+    "abbePorter": "Abbe–Porter: remove horizontal lines",
+    "darkField": "Dark field",
+    "phaseContrast": "Phase contrast",
+    "edgeEnhancement": "Edge enhancement"
+  },
+  "filterCaptions": {
+    "open": "All frequencies pass. The image reproduces the object’s intensity.",
+    "lowPass": "Removing high frequencies blurs edges and fine details.",
+    "highPass": "Removing low frequencies emphasizes edges.",
+    "bandPass": "Only an intermediate band of spatial frequencies passes.",
+    "verticalSlit": "A vertical slit passes frequency orders that form horizontal lines.",
+    "horizontalSlit": "A horizontal slit passes frequency orders that form vertical lines.",
+    "dcBlock": "Blocking the zero order removes the mean field for dark-field imaging.",
+    "phaseDot": "Shifting the zero order turns phase variations into intensity contrast.",
+    "painted": "Painted bins are blocked. Erasing lets them pass again."
+  },
+  "filtering": {
+    "fourierPlane": "Fourier plane",
+    "reconstructed": "Reconstructed image",
+    "preset": "Preset",
+    "filter": "Filter",
+    "phaseObject": "Object phase (hue)",
+    "log": "Log spectrum",
+    "erase": "Erase (pass light)",
+    "brushRadius": "Brush radius (bins)",
+    "power": "Power transmitted · {{power}}%"
+  },
+  "fourF": {
+    "objectPlane": "Object plane",
+    "lens1": "Lens L₁",
+    "lens2": "Lens L₂",
+    "camera": "Camera",
+    "f1Symbol": "f₁",
+    "f2Symbol": "f₂",
+    "objectIntensity": "Object intensity",
+    "irisCutoff": "Iris circle · coherent cutoff",
+    "cameraImage": "Camera image",
+    "fixedView": "Inverted · fixed field of view",
+    "illumination": "Illumination",
+    "coherent": "Coherent",
+    "incoherent": "Incoherent",
+    "f1": "Focal length f₁ (mm)",
+    "f2": "Focal length f₂ (mm)",
+    "iris": "Iris diameter D (mm)",
+    "defocus": "Defocus Δz (mm)",
+    "magnification": "M = {{value}}",
+    "cutoff": "ν꜀ = {{value}} cycles/µm",
+    "incoherentCutoff": "2ν꜀ = {{value}} cycles/µm",
+    "period": "Optical limiting period · {{value}} µm",
+    "incoherentNote": "In focus, incoherent edges have no ringing and fine bars lose contrast near cutoff."
   }
 }

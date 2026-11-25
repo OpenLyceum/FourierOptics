@@ -1,151 +1,207 @@
-/**
- * FourFOpticalSystemScreenView.ts
- *
- * The top-level view for the simulation screen.
- *
- * All visual nodes are added here. Follow these conventions:
- *   - Use this.layoutBounds for positioning (never magic pixel values)
- *   - Keep a ResetAllButton that calls model.reset() and this.reset()
- *   - Override step(dt) for frame-by-frame animation
- *
- * ── Adding content ────────────────────────────────────────────────────────────
- * 1. Create Node subclasses in separate files (e.g. FourierOpticsControlPanel.ts)
- * 2. Instantiate them here and call this.addChild(...)
- * 3. Link them to model properties:
- *      model.isRunningProperty.link( isRunning => { ... } );
- *
- * ── Layout bounds ─────────────────────────────────────────────────────────────
- * SceneryStack uses a virtual 1024×618 coordinate space by default.
- * this.layoutBounds gives you the full rectangle; use it for alignment:
- *   center, minX, maxX, minY, maxY, width, height
- */
-
-import { type EmptySelfOptions, optionize } from "scenerystack/phet-core";
-import { Node, Rectangle } from "scenerystack/scenery";
+import { DerivedProperty, PatternStringProperty } from "scenerystack/axon";
+import { toFixed } from "scenerystack/dot";
+import { HBox, Node, VBox } from "scenerystack/scenery";
 import { ResetAllButton } from "scenerystack/scenery-phet";
 import { ScreenView, type ScreenViewOptions } from "scenerystack/sim";
+import { AquaRadioButtonGroup } from "scenerystack/sun";
+import { Tandem } from "scenerystack/tandem";
 import { FLAT_RESET_ALL_BUTTON_OPTIONS } from "../../common/FourierOpticsButtonOptions.js";
-import FourierOpticsColors from "../../FourierOpticsColors.js";
-import { SCREEN_VIEW_MARGIN } from "../../FourierOpticsConstants.js";
-import type { FourFOpticalSystemModel } from "../model/FourFOpticalSystemModel.js";
+import { FourierOpticsPanel } from "../../common/FourierOpticsPanel.js";
+import { combo, heading, label, numberControl } from "../../common/view/controls.js";
+import { FieldImageNode } from "../../common/view/FieldImageNode.js";
+import { FrameRecomputeScheduler } from "../../common/view/FrameRecomputeScheduler.js";
+import { LensSchematicNode } from "../../common/view/LensSchematicNode.js";
+import { MaskEditorNode } from "../../common/view/MaskEditorNode.js";
+import { IMAGING_LAYOUT as I, OPTICS_LAYOUT as L, SCREEN_VIEW_MARGIN } from "../../FourierOpticsConstants.js";
+import { StringManager } from "../../i18n/StringManager.js";
+import { type FourFOpticalSystemModel, ILLUMINATION, SYSTEM_OBJECTS } from "../model/FourFOpticalSystemModel.js";
 import { FourFOpticalSystemScreenSummaryContent } from "./FourFOpticalSystemScreenSummaryContent.js";
 
-export type FourFOpticalSystemScreenViewOptions = ScreenViewOptions;
-
 export class FourFOpticalSystemScreenView extends ScreenView {
-  public constructor(model: FourFOpticalSystemModel, providedOptions?: FourFOpticalSystemScreenViewOptions) {
-    // ── Accessibility: screen summary ───────────────────────────────────────────
-    // The screen summary is the first thing a screen-reader user encounters. It
-    // is registered here, in the ScreenView's super() options, so every sim wires
-    // it the same way. See FourFOpticalSystemScreenSummaryContent for the four content regions.
-    const options = optionize<FourFOpticalSystemScreenViewOptions, EmptySelfOptions, ScreenViewOptions>()(
-      {
-        screenSummaryContent: new FourFOpticalSystemScreenSummaryContent(model),
-      },
-      providedOptions,
+  private readonly scheduler: FrameRecomputeScheduler;
+
+  public constructor(model: FourFOpticalSystemModel, options: ScreenViewOptions) {
+    super({ screenSummaryContent: new FourFOpticalSystemScreenSummaryContent(model), ...options });
+    const manager = StringManager.getInstance();
+    const strings = manager.getFourFStrings();
+    const a11y = manager.getFourFOpticalSystemA11yStrings();
+    const common = manager.getCommonStrings();
+    const filtering = manager.getFilteringStrings();
+    const objects = manager.getImagingObjectStrings();
+
+    const diagram = new LensSchematicNode({
+      f1: model.f1Property,
+      f2: model.f2Property,
+      iris: model.irisProperty,
+      defocus: model.defocusProperty,
+      stations: [
+        strings.objectPlaneStringProperty,
+        strings.lens1StringProperty,
+        filtering.fourierPlaneStringProperty,
+        strings.lens2StringProperty,
+        strings.cameraStringProperty,
+      ],
+      distances: [
+        strings.f1SymbolStringProperty,
+        strings.f1SymbolStringProperty,
+        strings.f2SymbolStringProperty,
+        strings.f2SymbolStringProperty,
+      ],
+      irisName: a11y.irisStringProperty,
+      irisHelp: a11y.irisHelpStringProperty,
+    });
+    const object = new FieldImageNode(model.object, I.fieldSize);
+    const spectrum = new FieldImageNode(model.spectrum, I.fieldSize, I.irisBins);
+    const iris = new MaskEditorNode(I.fieldSize, I.irisBins, model.size);
+    const camera = new FieldImageNode(model.camera, I.fieldSize);
+
+    const picture = (title: Parameters<typeof heading>[0], image: Node, detail: Parameters<typeof label>[0]) =>
+      new FourierOpticsPanel(
+        new VBox({
+          spacing: L.smallGap,
+          children: [heading(title, I.fieldSize), image, label(detail, { maxWidth: I.fieldSize })],
+        }),
+      );
+    const panels = new HBox({
+      spacing: L.gap,
+      align: "top",
+      children: [
+        picture(common.objectStringProperty, object, strings.objectIntensityStringProperty),
+        picture(
+          filtering.fourierPlaneStringProperty,
+          new Node({ children: [spectrum, iris] }),
+          strings.irisCutoffStringProperty,
+        ),
+        picture(strings.cameraImageStringProperty, camera, strings.fixedViewStringProperty),
+      ],
+    });
+
+    const popup = new Node();
+    const objectChoice = combo(
+      common.objectStringProperty,
+      model.objectProperty,
+      SYSTEM_OBJECTS.map((value) => ({ value, name: objects[`${value}StringProperty`] })),
+      popup,
     );
-    super(options);
-
-    // ── Background ────────────────────────────────────────────────────────────
-    // A full-screen rectangle that follows the active color profile.
-    // Replace or remove once you add real content.
-    const backgroundRect = new Rectangle(0, 0, this.layoutBounds.width, this.layoutBounds.height, {
-      fill: FourierOpticsColors.backgroundColorProperty,
+    const illumination = new AquaRadioButtonGroup(
+      model.illuminationProperty,
+      ILLUMINATION.map((value) => ({
+        value,
+        createNode: () => label(strings[`${value}StringProperty`]),
+        options: { accessibleName: strings[`${value}StringProperty`] },
+      })),
+      { accessibleName: strings.illuminationStringProperty, tandem: Tandem.OPT_OUT },
+    );
+    const lensControls = new VBox({
+      spacing: L.smallGap,
+      align: "left",
+      children: [
+        numberControl(strings.f1StringProperty, model.f1Property),
+        numberControl(strings.f2StringProperty, model.f2Property),
+      ],
     });
-    this.addChild(backgroundRect);
-
-    // ── Accessibility: per-control names ────────────────────────────────────────
-    // EVERY interactive node must carry an `accessibleName` (and an
-    // `accessibleHelpText` where useful), sourced from the StringManager `a11y`
-    // string group — never a hard-coded English literal. Sun/scenery-phet controls
-    // (NumberControl, Checkbox, ComboBox, AquaRadioButtonGroup, …) accept it as an
-    // option; a draggable plain Node needs `tagName: "div", focusable: true` too.
-    // Example (uncomment and adapt when you add a real control; add the
-    // `a11y.controls.startButton` string to every strings_*.json first):
-    //
-    //   const a11y = StringManager.getInstance().getA11yStrings();
-    //   const startButton = new RectangularPushButton({
-    //     ...FLAT_RECTANGULAR_BUTTON_OPTIONS, // flat appearance, not SceneryStack's default 3-D look
-    //     content: someIcon,
-    //     listener: () => model.start(),
-    //     accessibleName: a11y.controls.startButtonStringProperty,
-    //   });
-    //   this.addChild(startButton);
-
-    // ── Reset All button ──────────────────────────────────────────────────────
-    // Always position at bottom-right (PhET convention).
-    const resetAllButton = new ResetAllButton({
-      ...FLAT_RESET_ALL_BUTTON_OPTIONS,
-      listener: () => {
-        model.reset();
-        this.reset();
-      },
-      right: this.layoutBounds.maxX - SCREEN_VIEW_MARGIN,
-      bottom: this.layoutBounds.maxY - SCREEN_VIEW_MARGIN,
+    const irisControls = new VBox({
+      spacing: L.smallGap,
+      align: "left",
+      children: [
+        numberControl(strings.irisStringProperty, model.irisProperty, 0.01),
+        numberControl(strings.defocusStringProperty, model.defocusProperty, 0.1),
+      ],
     });
-    this.addChild(resetAllButton);
+    const illumControls = new VBox({
+      spacing: L.smallGap,
+      align: "left",
+      children: [
+        label(strings.illuminationStringProperty),
+        illumination,
+        numberControl(manager.getTransformStrings().wavelengthStringProperty, model.wavelengthProperty),
+      ],
+    });
+    const controls = new FourierOpticsPanel(
+      new HBox({
+        spacing: L.gap,
+        align: "top",
+        children: [objectChoice, lensControls, irisControls, illumControls],
+      }),
+    );
 
-    // ── Accessibility: keyboard / reading traversal order ───────────────────────
-    // Make the parallel DOM (Tab order and screen-reader reading order)
-    // deterministic and independent of child z-order. ScreenView throws if you
-    // set pdomOrder on itself, so add a lightweight wrapper Node that "borrows"
-    // the interactive nodes in the order a user should reach them — Reset All
-    // last. Non-interactive decoration (background, placeholder) is omitted.
-    this.addChild(
-      new Node({
-        pdomOrder: [
-          // TODO: add the sim's interactive nodes here, in traversal order
-          resetAllButton,
+    const mProperty = new DerivedProperty([model.magnificationProperty], (value) => toFixed(value, 2));
+    const cutoffProperty = new DerivedProperty([model.coherentCutoffProperty], (value) => toFixed(value, 4));
+    const incoherentProperty = new DerivedProperty([model.incoherentCutoffProperty], (value) => toFixed(value, 4));
+    const periodProperty = new DerivedProperty([model.periodProperty], (value) =>
+      Number.isFinite(value) ? toFixed(value, 1) : "∞",
+    );
+    const mTextProperty = new PatternStringProperty(strings.magnificationStringProperty, { value: mProperty });
+    const cutoffTextProperty = new PatternStringProperty(strings.cutoffStringProperty, { value: cutoffProperty });
+    const incoherentTextProperty = new PatternStringProperty(strings.incoherentCutoffStringProperty, {
+      value: incoherentProperty,
+    });
+    const periodTextProperty = new PatternStringProperty(strings.periodStringProperty, { value: periodProperty });
+    const incoherentLabel = label(incoherentTextProperty);
+    const note = label(strings.incoherentNoteStringProperty, { maxWidth: I.schematicWidth });
+    const readouts = new FourierOpticsPanel(
+      new VBox({
+        spacing: L.smallGap,
+        align: "left",
+        children: [
+          new HBox({
+            spacing: L.gap,
+            children: [label(mTextProperty), label(cutoffTextProperty), incoherentLabel, label(periodTextProperty)],
+          }),
+          note,
         ],
       }),
     );
+    const updateIllumination = (value: typeof model.illuminationProperty.value) => {
+      incoherentLabel.visible = note.visible = value === "incoherent";
+    };
+    model.illuminationProperty.link(updateIllumination);
+    const body = new VBox({
+      spacing: L.smallGap,
+      children: [diagram, panels, controls, readouts],
+      centerX: this.layoutBounds.centerX,
+      top: this.layoutBounds.minY + SCREEN_VIEW_MARGIN / 2,
+    });
+    const reset = new ResetAllButton({
+      ...FLAT_RESET_ALL_BUTTON_OPTIONS,
+      right: this.layoutBounds.maxX - SCREEN_VIEW_MARGIN,
+      bottom: this.layoutBounds.maxY - SCREEN_VIEW_MARGIN,
+      listener: () => {
+        this.interruptSubtreeInput();
+        model.reset();
+      },
+    });
+    const content = new Node({ children: [body, reset, popup], pdomOrder: [controls, diagram, reset] });
+    this.addChild(content);
+    this.scheduler = new FrameRecomputeScheduler(model.inputsChangedEmitter, () => {
+      const pupil = model.recompute();
+      object.updateScale();
+      object.update("intensity");
+      spectrum.updateScale();
+      spectrum.update("log");
+      iris.update({ kind: "lowPass", radius: model.pupilRadiusProperty.value }, pupil);
+      camera.updateScale();
+      camera.update("intensity");
+    });
+    content.disposeEmitter.addListener(() => {
+      this.scheduler.dispose();
+      model.illuminationProperty.unlink(updateIllumination);
+      for (const property of [
+        mTextProperty,
+        cutoffTextProperty,
+        incoherentTextProperty,
+        periodTextProperty,
+        mProperty,
+        cutoffProperty,
+        incoherentProperty,
+        periodProperty,
+      ]) {
+        property.dispose();
+      }
+    });
   }
 
-  /**
-   * Resets view-side state (animations, panel visibility, etc.).
-   * Called by the Reset All button listener.
-   */
-  public reset(): void {
-    // TODO: reset any view-side state here
-  }
-
-  /**
-   * Steps the view forward by dt seconds for animation.
-   * @param _dt - elapsed time in seconds
-   */
   public override step(_dt: number): void {
-    // TODO: implement animation updates here
+    this.scheduler.step();
   }
-
-  // ── Accessibility / listeners: dispose ─────────────────────────────────────
-  // ScreenView is `isDisposable: false` and lives for the whole sim, so this
-  // class rarely needs dispose(). Child Nodes (and a live currentDetails
-  // DerivedProperty you own on a short-lived object) do. When you add
-  // DerivedProperty / Multilink / Property.link against model state, keep the
-  // references and tear them down — forks copy what they see. Pattern:
-  //
-  // private readonly disposeFourFOpticalSystemScreenView: () => void;
-  //
-  // // in the constructor, after creating the listeners:
-  // const statusMultilink = Multilink.multilink(
-  //   [model.someProperty, model.otherProperty],
-  //   (a, b) => { /* update view from model */ },
-  // );
-  // const detailsProperty = new DerivedProperty(
-  //   [model.stateProperty],
-  //   (state) => `State: ${state}`,
-  // ); // → pass as currentDetailsContent in FourFOpticalSystemScreenSummaryContent
-  // const onExternal = (v: number) => { /* … */ };
-  // model.externalProperty.link(onExternal); // Property you do NOT own
-  //
-  // this.disposeFourFOpticalSystemScreenView = () => {
-  //   statusMultilink.dispose();                 // Multilink you created
-  //   detailsProperty.dispose();                 // DerivedProperty you created
-  //   model.externalProperty.unlink(onExternal); // undo external link
-  // };
-  //
-  // public override dispose(): void {
-  //   this.disposeFourFOpticalSystemScreenView();
-  //   super.dispose();
-  // }
 }
