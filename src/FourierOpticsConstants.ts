@@ -8,13 +8,10 @@
  *
  * Conventions
  * ───────────
- *  - Physics / model values use SI units (metres, seconds, kilograms, …);
- *    note the unit in a comment on each value.
+ *  - Optical control units are explicit in the names below.
  *  - Layout / chrome values are in screen pixels.
  *  - Colour strings live in FourierOpticsColors.ts, not here.
  *  - Computed expressions (e.g. `2 * Math.PI`) may stay inline.
- *
- * Remove the example constants below and replace them with the sim's own.
  */
 
 import FourierOpticsNamespace from "./FourierOpticsNamespace.js";
@@ -30,9 +27,20 @@ export const SCREEN_VIEW_MARGIN = 20;
  */
 export const PANEL_CORNER_RADIUS = 6;
 
-// ── Physics / model defaults (SI units) ───────────────────────────────────────
+// ── Optical controls ────────────────────────────────────────────────────────
 
-// Example: export const GRAVITY_MPS2 = 9.81; // m/s²
+/**
+ * Optical parameter defaults and suggested control ranges in the numerical API's
+ * display units. The solver also supports sampling outside these control ranges.
+ */
+export const OPTICAL_PARAMETERS = {
+  gridSize: { default: 256, min: 64, max: 1024 },
+  pitchUm: { default: 10, min: 1, max: 25 },
+  wavelengthNm: { default: 550, min: 380, max: 750 },
+  f1Mm: { default: 100, min: 25, max: 250 },
+  f2Mm: { default: 100, min: 25, max: 250 },
+  irisDiameterMm: { default: 2, min: 0, max: 10 },
+} as const;
 
 FourierOpticsNamespace.register("FourierOpticsConstants", {
   SCREEN_VIEW_MARGIN,

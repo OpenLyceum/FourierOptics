@@ -9,6 +9,8 @@
  * tests below using forceGC().
  */
 
+import { CpuFourierEngine } from "../src/common/fourier/cpu/CpuFourierEngine.js";
+import { rasterizeMask } from "../src/common/model/masks.js";
 import { FourFOpticalSystemModel } from "../src/four-f-optical-system/model/FourFOpticalSystemModel.js";
 import { FourierTransformModel } from "../src/fourier-transform/model/FourierTransformModel.js";
 import { SpatialFilteringModel } from "../src/spatial-filtering/model/SpatialFilteringModel.js";
@@ -16,6 +18,16 @@ import { SpatialFrequenciesModel } from "../src/spatial-frequencies/model/Spatia
 import { describeDisposalLeaks } from "./helpers/memoryLeak.js";
 
 describeDisposalLeaks([
+  {
+    name: "CpuFourierEngine",
+    create: () => {
+      const size = 64;
+      const engine = new CpuFourierEngine(size);
+      const intensity = new Float32Array(size * size);
+      engine.imageThroughSystem(intensity, rasterizeMask({ kind: "open" }, size), intensity);
+      return engine;
+    },
+  },
   { name: "SpatialFrequenciesModel", create: () => new SpatialFrequenciesModel() },
   { name: "FourierTransformModel", create: () => new FourierTransformModel() },
   { name: "SpatialFilteringModel", create: () => new SpatialFilteringModel() },
