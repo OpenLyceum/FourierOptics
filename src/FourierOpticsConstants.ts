@@ -118,8 +118,19 @@ export const SPECTRAL_GAMMA_TABLE_SIZE = 1024;
 export const FILTER_PARAMETERS = {
   letter: { width: 132, height: 166, thickness: 24 },
   gratingPeriod: 32,
-  phaseRadius: 62,
-  weakPhase: 0.2,
+  phaseCellLimit: 0.3,
+  // Log-spectrum range needed to show weak diffraction alongside the undeviated peak.
+  phaseCellExposureDb: 74,
+  // Cell centers and semiaxes in samples on the reference 256² grid.
+  phaseCells: [
+    { x: -51, y: -42, radiusX: 14, radiusY: 14, phase: 0.3 },
+    { x: -7, y: -57, radiusX: 5, radiusY: 7, phase: -0.14 },
+    { x: 40, y: -35, radiusX: 8, radiusY: 5, phase: 0.15 },
+    { x: 5, y: -6, radiusX: 5, radiusY: 4, phase: 0.13 },
+    { x: -36, y: 22, radiusX: 6, radiusY: 8, phase: -0.18 },
+    { x: 51, y: 27, radiusX: 6, radiusY: 6, phase: -0.12 },
+    { x: 12, y: 53, radiusX: 7, radiusY: 6, phase: 0.16 },
+  ],
   radius: { default: 18, min: 1, max: 62 },
   innerRadius: { default: 7, min: 0, max: 61 },
   slitWidth: { default: 7, min: 1, max: 56 },
@@ -170,11 +181,11 @@ export const AIRY_FIFTH_ZERO_OVER_PI = 5.24;
 export const APERTURE_FIT_FRINGE_COUNT = 5;
 export const MICROMETERS_PER_MILLIMETER = 1000;
 export const OBJECT_SPECTRUM_ZOOM = {
-  letterF: 16,
+  letterF: 4,
   grating: 4,
   mesh: 4,
   letterMesh: 4,
-  phaseDisk: 32,
+  phaseCells: 4,
   sinusoids: 2,
 } as const;
 export const RESOLUTION_TARGET_SPECTRUM_ZOOM = 2;

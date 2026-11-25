@@ -32,7 +32,7 @@
       "screenSummary": {
         "playArea": "De gauche à droite se trouvent l’objet, le plan de Fourier avec un masque et l’image reconstruite à l’endroit.",
         "controlArea": "Choisissez un objet, un filtre ou un préréglage. Déplacez les poignées du masque ou peignez et effacez des cases du plan de Fourier.",
-        "interactionHint": "Essayez le préréglage Abbe–Porter pour supprimer les lignes horizontales de la grille."
+        "interactionHint": "Comparez les préréglages Contraste de phase et Fond noir avec les mêmes cellules transparentes. En contraste de phase, les cellules apparaissent plus claires ou plus sombres que leur milieu. En fond noir, elles apparaissent lumineuses sur un fond sombre."
       },
       "currentDetails": "Objet {{object}}. Filtre {{filter}}. Puissance transmise : {{power}} pour cent. {{effect}} {{cutoff}}",
       "radius": "Poignée du rayon extérieur du masque",
@@ -178,7 +178,7 @@
     "grating": "Réseau",
     "mesh": "Grille (réseaux croisés)",
     "letterMesh": "Lettre F derrière une grille",
-    "phaseDisk": "Objet de phase faible",
+    "phaseCells": "Cellules de phase",
     "sinusoids": "Somme de sinusoïdes",
     "resolutionTarget": "Mire de résolution"
   },
@@ -207,8 +207,8 @@
     "bandPass": "Seule une bande intermédiaire de fréquences spatiales passe.",
     "verticalSlit": "Une fente verticale transmet les ordres qui forment les lignes horizontales.",
     "horizontalSlit": "Une fente horizontale transmet les ordres qui forment les lignes verticales.",
-    "dcBlock": "Le blocage de l’ordre zéro supprime le champ moyen et produit une image sur fond noir.",
-    "phaseDot": "Le déphasage de l’ordre zéro convertit les variations de phase en contraste d’intensité.",
+    "dcBlock": "Le blocage de la seule case centrale supprime le champ moyen et produit une image sur fond noir.",
+    "phaseDot": "Un déphasage de +π/2 appliqué à la seule case centrale convertit les variations de phase en contraste d’intensité.",
     "painted": "Les cases peintes sont bloquées. Les effacer rétablit leur transmission."
   },
   "filtering": {

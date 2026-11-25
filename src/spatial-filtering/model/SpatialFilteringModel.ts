@@ -32,8 +32,8 @@ export const FILTER_PRESETS = ["custom", "abbePorter", "darkField", "phaseContra
 
 const configurations = {
   abbePorter: { object: "mesh", filter: "horizontalSlit" },
-  darkField: { object: "phaseDisk", filter: "dcBlock" },
-  phaseContrast: { object: "phaseDisk", filter: "phaseDot" },
+  darkField: { object: "phaseCells", filter: "dcBlock" },
+  phaseContrast: { object: "phaseCells", filter: "phaseDot" },
   edgeEnhancement: { object: "letterF", filter: "highPass" },
 } as const;
 

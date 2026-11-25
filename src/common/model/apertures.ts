@@ -120,6 +120,19 @@ function rasterizeSinusoids(spec: Extract<ApertureSpec, { kind: "sinusoids" }>, 
   }
 }
 
+/** Fraction of a sample covered by a hard-edged shape, estimated on a subpixel grid. */
+export function sampleCoverage(inside: (x: number, y: number) => boolean, x: number, y: number): number {
+  let hits = 0;
+  for (let sy = 0; sy < EDGE_SUBSAMPLES; sy++) {
+    const sampleY = y - 0.5 + (sy + 0.5) / EDGE_SUBSAMPLES;
+    for (let sx = 0; sx < EDGE_SUBSAMPLES; sx++) {
+      const sampleX = x - 0.5 + (sx + 0.5) / EDGE_SUBSAMPLES;
+      hits += Number(inside(sampleX, sampleY));
+    }
+  }
+  return hits / (EDGE_SUBSAMPLES * EDGE_SUBSAMPLES);
+}
+
 /** Smooth sinusoids are point sampled. Hard edges average 4×4 subpixel transmissions. */
 export function rasterizeAperture(spec: ApertureSpec, field: ComplexField): void {
   if (spec.kind === "sinusoids") {
@@ -136,15 +149,7 @@ export function rasterizeAperture(spec: ApertureSpec, field: ComplexField): void
   let i = 0;
   for (let y = -centre; y < size - centre; y++) {
     for (let x = -centre; x < size - centre; x++) {
-      let hits = 0;
-      for (let sy = 0; sy < EDGE_SUBSAMPLES; sy++) {
-        const sampleY = y - 0.5 + (sy + 0.5) / EDGE_SUBSAMPLES;
-        for (let sx = 0; sx < EDGE_SUBSAMPLES; sx++) {
-          const sampleX = x - 0.5 + (sx + 0.5) / EDGE_SUBSAMPLES;
-          hits += Number(inside(sampleX, sampleY));
-        }
-      }
-      const coverage = hits / (EDGE_SUBSAMPLES * EDGE_SUBSAMPLES);
+      const coverage = sampleCoverage(inside, x, y);
       data[i++] = outsideReal + coverage * realDelta;
       data[i++] = coverage * imaginaryDelta;
     }

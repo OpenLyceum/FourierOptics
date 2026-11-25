@@ -14,6 +14,7 @@ import { MaskEditorNode } from "../../common/view/MaskEditorNode.js";
 import { zoomCrop } from "../../common/view/spectrumZoom.js";
 import Colors from "../../FourierOpticsColors.js";
 import {
+  EXPOSURE_DB,
   FILTER_PARAMETERS,
   IMAGING_LAYOUT as I,
   OPTICS_LAYOUT as L,
@@ -108,10 +109,10 @@ export class SpatialFilteringScreenView extends ScreenView {
     const powerLabelProperty = new PatternStringProperty(strings.powerStringProperty, { power: powerProperty });
     const objectHeadingProperty = new DerivedProperty(
       [model.objectProperty, common.objectStringProperty, strings.phaseObjectStringProperty],
-      (kind, normal, phase) => (kind === "phaseDisk" ? phase : normal),
+      (kind, normal, phase) => (kind === "phaseCells" ? phase : normal),
     );
     const phaseScaleProperty = new PatternStringProperty(strings.phaseScaleStringProperty, {
-      limit: FILTER_PARAMETERS.weakPhase,
+      limit: FILTER_PARAMETERS.phaseCellLimit,
     });
     const phaseLegend = new VBox({
       spacing: L.smallGap / 2,
@@ -177,7 +178,7 @@ export class SpatialFilteringScreenView extends ScreenView {
     };
     model.filterProperty.link(showBrush);
     const updateLegend = (kind: typeof model.objectProperty.value) => {
-      phaseLegend.visible = kind === "phaseDisk";
+      phaseLegend.visible = kind === "phaseCells";
     };
     model.objectProperty.link(updateLegend);
     this.scheduler = new FrameRecomputeScheduler(
@@ -188,11 +189,12 @@ export class SpatialFilteringScreenView extends ScreenView {
           const readout = model.capturePower(ops);
           const crop = zoomCrop(I.filterBins, model.zoomProperty.value, model.size);
           const mode = model.phaseProperty.value ? "phase" : model.logProperty.value ? "log" : "intensity";
-          const paintObject =
-            model.objectProperty.value === "phaseDisk"
-              ? () => object.paintObjectPhase(model.object, FILTER_PARAMETERS.weakPhase)
-              : object.capture(ops, model.object, "intensity");
-          const paintSpectrum = spectrum.capture(ops, model.spectrum, mode, crop);
+          const phaseCells = model.objectProperty.value === "phaseCells";
+          const paintObject = phaseCells
+            ? () => object.paintObjectPhase(model.object, FILTER_PARAMETERS.phaseCellLimit)
+            : object.capture(ops, model.object, "intensity");
+          const exposure = phaseCells ? FILTER_PARAMETERS.phaseCellExposureDb : EXPOSURE_DB.default;
+          const paintSpectrum = spectrum.capture(ops, model.spectrum, mode, crop, exposure);
           const paintResult = result.capture(ops, model.reconstructed, "intensity");
           const mask = model.getMask();
           const size = model.size;
